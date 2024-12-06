@@ -26,5 +26,26 @@ The most popular Community Notes feature exemplifies the challenges faced when i
 
 At the moment, [those](https://github.com/twitter/communitynotes/blob/main/documentation/about/challenges.md?plain=1#L20) platforms mirror exactly the same problem that they are trying to solve, by not having a trully diverse group of people in a general[^2] public to score and fact-check the information.
 
+```mermaid
+%%{init: {'theme': 'neutral' } }%%
+
+sequenceDiagram
+    participant A as Proposer
+    participant V as Voter
+    participant S as System
+
+    A->>A: Generate keypair (public/private)
+    A->>S: Distribute public key to voters
+    loop For each voter
+        V->>V: Create vote
+        V->>V: Encrypt vote with public key
+        V->>S: Sign and submit encrypted vote
+    end
+    S->>A: Notify when timeout or enough votes collected
+    A->>A: Decrypt votes with private key
+    A->>A: Calculate outcome
+    A->>S: Publish results
+```
+
 [^1]: If your community is made up of people who either lean forward one direction (or most of them) politically, then your Community Notes feature could still "work" in the sense that it could highlight strong disagreements, such as debates over leader's status or whether certain policies align with fiscal conservative values. This could result in a spectrum of beliefs and potentially lead to "corrections" that bring you closer to the truth. However, this process might often resemble finding a middle ground between empirical evidence and unfounded claims, which doesn't necessarily lead to factual accuracy. Instead, it might simply label dissenting views as socially unacceptable, rather than providing genuine fact-checking ratings.
 [^2]: The issue is that without the general public or at least proportional representation of all its demographics, you don't necessarily get closer to the truth; you simply approach community ideological consensus. This utility is most effective at consolidating viewpoints into those widely accepted by the majority, with any movement toward truth being more of a side effect.
