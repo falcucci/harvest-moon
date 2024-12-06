@@ -12,11 +12,11 @@ Multiple notes could be shown as a suggesting note or as a reminder that the goa
 
 it is often possible to verify such inaccuracies through a simple internet search.</em>
 
-> |   Rating Type    | Number of Responses | Percentage |
-> | :--------------: | :-----------------: | :--------: |
-> |     Helpful      |         214         |   62,8%    |
-> |   Not Helpful    |         116         |   34,0%    |
-> | Somewhat Helpful |         11          |    3,2%    |
+|   Rating Type    | Number of Responses | Percentage |
+| :--------------: | :-----------------: | :--------: |
+|     Helpful      |         214         |   62,8%    |
+|   Not Helpful    |         116         |   34,0%    |
+| Somewhat Helpful |         11          |    3,2%    |
 
 </div>
 
