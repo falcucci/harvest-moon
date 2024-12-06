@@ -1,24 +1,32 @@
-use cumulus_primitives_core::ParaId;
+use alloc::vec;
+use alloc::vec::Vec;
 
-use crate::{
-    AccountId, BalancesConfig, CollatorSelectionConfig, ParachainInfoConfig, PolkadotXcmConfig,
-    RuntimeGenesisConfig, SessionConfig, SessionKeys, SudoConfig, EXISTENTIAL_DEPOSIT,
-};
-use alloc::{vec, vec::Vec};
-use parachains_common::{genesis_config_helpers::*, AuraId};
+use cumulus_primitives_core::ParaId;
+use parachains_common::genesis_config_helpers::*;
+use parachains_common::AuraId;
 use serde_json::Value;
 use sp_core::sr25519;
 use sp_genesis_builder::PresetId;
+
+use crate::AccountId;
+use crate::BalancesConfig;
+use crate::CollatorSelectionConfig;
+use crate::ParachainInfoConfig;
+use crate::PolkadotXcmConfig;
+use crate::RuntimeGenesisConfig;
+use crate::SessionConfig;
+use crate::SessionKeys;
+use crate::SudoConfig;
+use crate::EXISTENTIAL_DEPOSIT;
 
 /// The default XCM version to set in genesis config.
 const SAFE_XCM_VERSION: u32 = xcm::prelude::XCM_VERSION;
 
 /// Generate the session keys from individual elements.
 ///
-/// The input must be a tuple of individual keys (a single arg for now since we have just one key).
-pub fn voting_session_keys(keys: AuraId) -> SessionKeys {
-    SessionKeys { aura: keys }
-}
+/// The input must be a tuple of individual keys (a single arg for now since we
+/// have just one key).
+pub fn voting_session_keys(keys: AuraId) -> SessionKeys { SessionKeys { aura: keys } }
 
 fn testnet_genesis(
     invulnerables: Vec<(AccountId, AuraId)>,
@@ -39,11 +47,7 @@ fn testnet_genesis(
             ..Default::default()
         },
         collator_selection: CollatorSelectionConfig {
-            invulnerables: invulnerables
-                .iter()
-                .cloned()
-                .map(|(acc, _)| acc)
-                .collect::<Vec<_>>(),
+            invulnerables: invulnerables.iter().cloned().map(|(acc, _)| acc).collect::<Vec<_>>(),
             candidacy_bond: EXISTENTIAL_DEPOSIT * 16,
             ..Default::default()
         },
@@ -135,7 +139,8 @@ fn development_config_genesis() -> Value {
     )
 }
 
-/// Provides the JSON representation of predefined genesis config for given `id`.
+/// Provides the JSON representation of predefined genesis config for given
+/// `id`.
 pub fn get_preset(id: &PresetId) -> Option<vec::Vec<u8>> {
     let patch = match id.try_into() {
         Ok(sp_genesis_builder::LOCAL_TESTNET_RUNTIME_PRESET) => local_testnet_genesis(),

@@ -1,42 +1,59 @@
-//! Service and ServiceFactory implementation. Specialized wrapper over substrate service.
+//! Service and ServiceFactory implementation. Specialized wrapper over
+//! substrate service.
 
 // std
-use std::{sync::Arc, time::Duration};
+use std::sync::Arc;
+use std::time::Duration;
 
 use cumulus_client_cli::CollatorOptions;
+// Cumulus Imports
+use cumulus_client_collator::service::CollatorService;
+#[docify::export(lookahead_collator)]
+use cumulus_client_consensus_aura::collators::lookahead::Params as AuraParams;
+#[docify::export(lookahead_collator)]
+use cumulus_client_consensus_aura::collators::lookahead::{self as aura};
+use cumulus_client_consensus_common::ParachainBlockImport as TParachainBlockImport;
+use cumulus_client_consensus_proposer::Proposer;
+use cumulus_client_service::build_network;
+use cumulus_client_service::build_relay_chain_interface;
+use cumulus_client_service::prepare_node_config;
+use cumulus_client_service::start_relay_chain_tasks;
+use cumulus_client_service::BuildNetworkParams;
+use cumulus_client_service::CollatorSybilResistance;
+use cumulus_client_service::DARecoveryProfile;
+use cumulus_client_service::ParachainHostFunctions;
+use cumulus_client_service::StartRelayChainTasksParams;
+#[docify::export(cumulus_primitives)]
+use cumulus_primitives_core::relay_chain::CollatorPair;
+#[docify::export(cumulus_primitives)]
+use cumulus_primitives_core::relay_chain::ValidationCode;
+#[docify::export(cumulus_primitives)]
+use cumulus_primitives_core::ParaId;
+use cumulus_relay_chain_interface::OverseerHandle;
+use cumulus_relay_chain_interface::RelayChainInterface;
+// Substrate Imports
+use frame_benchmarking_cli::SUBSTRATE_REFERENCE_HARDWARE;
 // Local Runtime Types
 use parachain_voting_runtime::{
     apis::RuntimeApi,
     opaque::{Block, Hash},
 };
-
-// Cumulus Imports
-use cumulus_client_collator::service::CollatorService;
-#[docify::export(lookahead_collator)]
-use cumulus_client_consensus_aura::collators::lookahead::{self as aura, Params as AuraParams};
-use cumulus_client_consensus_common::ParachainBlockImport as TParachainBlockImport;
-use cumulus_client_consensus_proposer::Proposer;
-use cumulus_client_service::{
-    build_network, build_relay_chain_interface, prepare_node_config, start_relay_chain_tasks,
-    BuildNetworkParams, CollatorSybilResistance, DARecoveryProfile, ParachainHostFunctions,
-    StartRelayChainTasksParams,
-};
-#[docify::export(cumulus_primitives)]
-use cumulus_primitives_core::{
-    relay_chain::{CollatorPair, ValidationCode},
-    ParaId,
-};
-use cumulus_relay_chain_interface::{OverseerHandle, RelayChainInterface};
-
-// Substrate Imports
-use frame_benchmarking_cli::SUBSTRATE_REFERENCE_HARDWARE;
 use prometheus_endpoint::Registry;
 use sc_client_api::Backend;
 use sc_consensus::ImportQueue;
-use sc_executor::{HeapAllocStrategy, WasmExecutor, DEFAULT_HEAP_ALLOC_STRATEGY};
+use sc_executor::HeapAllocStrategy;
+use sc_executor::WasmExecutor;
+use sc_executor::DEFAULT_HEAP_ALLOC_STRATEGY;
 use sc_network::NetworkBlock;
-use sc_service::{Configuration, PartialComponents, TFullBackend, TFullClient, TaskManager};
-use sc_telemetry::{Telemetry, TelemetryHandle, TelemetryWorker, TelemetryWorkerHandle};
+use sc_service::Configuration;
+use sc_service::PartialComponents;
+use sc_service::TFullBackend;
+use sc_service::TFullClient;
+use sc_service::TaskManager;
+use sc_telemetry::Telemetry;
+use sc_telemetry::TelemetryHandle;
+use sc_telemetry::TelemetryWorker;
+use sc_telemetry::TelemetryWorkerHandle;
 use sc_transaction_pool_api::OffchainTransactionPoolFactory;
 use sp_keystore::KeystorePtr;
 
@@ -65,8 +82,8 @@ pub type Service = PartialComponents<
 
 /// Starts a `ServiceBuilder` for a full service.
 ///
-/// Use this macro if you don't actually need the full service, but just the builder in order to
-/// be able to perform chain operations.
+/// Use this macro if you don't actually need the full service, but just the
+/// builder in order to be able to perform chain operations.
 #[docify::export(component_instantiation)]
 pub fn new_partial(config: &Configuration) -> Result<Service, sc_service::Error> {
     let telemetry = config
@@ -80,12 +97,11 @@ pub fn new_partial(config: &Configuration) -> Result<Service, sc_service::Error>
         })
         .transpose()?;
 
-    let heap_pages = config
-        .executor
-        .default_heap_pages
-        .map_or(DEFAULT_HEAP_ALLOC_STRATEGY, |h| HeapAllocStrategy::Static {
+    let heap_pages = config.executor.default_heap_pages.map_or(DEFAULT_HEAP_ALLOC_STRATEGY, |h| {
+        HeapAllocStrategy::Static {
             extra_pages: h as _,
-        });
+        }
+    });
 
     let executor = ParachainExecutor::builder()
         .with_execution_method(config.executor.wasm_method)
@@ -107,9 +123,7 @@ pub fn new_partial(config: &Configuration) -> Result<Service, sc_service::Error>
     let telemetry_worker_handle = telemetry.as_ref().map(|(worker, _)| worker.handle());
 
     let telemetry = telemetry.map(|(worker, telemetry)| {
-        task_manager
-            .spawn_handle()
-            .spawn("telemetry", None, worker.run());
+        task_manager.spawn_handle().spawn("telemetry", None, worker.run());
         telemetry
     });
 
@@ -211,10 +225,7 @@ fn start_consensus(
         para_backend: backend,
         relay_client: relay_chain_interface,
         code_hash_provider: move |block_hash| {
-            client
-                .code_at(block_hash)
-                .ok()
-                .map(|c| ValidationCode::from(c).hash())
+            client.code_at(block_hash).ok().map(|c| ValidationCode::from(c).hash())
         },
         keystore,
         collator_key,
@@ -229,14 +240,13 @@ fn start_consensus(
     let fut = aura::run::<Block, sp_consensus_aura::sr25519::AuthorityPair, _, _, _, _, _, _, _, _>(
         params,
     );
-    task_manager
-        .spawn_essential_handle()
-        .spawn("aura", None, fut);
+    task_manager.spawn_essential_handle().spawn("aura", None, fut);
 
     Ok(())
 }
 
-/// Start a node with the given parachain `Configuration` and relay chain `Configuration`.
+/// Start a node with the given parachain `Configuration` and relay chain
+/// `Configuration`.
 #[sc_tracing::logging::prefix_logs_with("Parachain")]
 pub async fn start_parachain_node(
     parachain_config: Configuration,
@@ -276,8 +286,8 @@ pub async fn start_parachain_node(
     let transaction_pool = params.transaction_pool.clone();
     let import_queue_service = params.import_queue.service();
 
-    // NOTE: because we use Aura here explicitly, we can use `CollatorSybilResistance::Resistant`
-    // when starting the network.
+    // NOTE: because we use Aura here explicitly, we can use
+    // `CollatorSybilResistance::Resistant` when starting the network.
     let (network, system_rpc_tx, tx_handler_controller, start_network, sync_service) =
         build_network(BuildNetworkParams {
             parachain_config: &parachain_config,
@@ -346,15 +356,17 @@ pub async fn start_parachain_node(
 
     if let Some(hwbench) = hwbench {
         sc_sysinfo::print_hwbench(&hwbench);
-        // Here you can check whether the hardware meets your chains' requirements. Putting a link
-        // in there and swapping out the requirements for your own are probably a good idea. The
-        // requirements for a para-chain are dictated by its relay-chain.
+        // Here you can check whether the hardware meets your chains' requirements.
+        // Putting a link in there and swapping out the requirements for your
+        // own are probably a good idea. The requirements for a para-chain are
+        // dictated by its relay-chain.
         match SUBSTRATE_REFERENCE_HARDWARE.check_hardware(&hwbench, false) {
             Err(err) if validator => {
                 log::warn!(
-				"⚠️  The hardware does not meet the minimal requirements {} for role 'Authority'.",
-				err
-			);
+                    "⚠️  The hardware does not meet the minimal requirements {} for role \
+                     'Authority'.",
+                    err
+                );
             }
             _ => {}
         }

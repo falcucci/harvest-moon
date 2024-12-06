@@ -7,12 +7,16 @@
 
 use std::sync::Arc;
 
-use parachain_voting_runtime::{opaque::Block, AccountId, Balance, Nonce};
-
+use parachain_voting_runtime::opaque::Block;
+use parachain_voting_runtime::AccountId;
+use parachain_voting_runtime::Balance;
+use parachain_voting_runtime::Nonce;
 use sc_transaction_pool_api::TransactionPool;
 use sp_api::ProvideRuntimeApi;
 use sp_block_builder::BlockBuilder;
-use sp_blockchain::{Error as BlockChainError, HeaderBackend, HeaderMetadata};
+use sp_blockchain::Error as BlockChainError;
+use sp_blockchain::HeaderBackend;
+use sp_blockchain::HeaderMetadata;
 
 /// A type representing all RPC extensions.
 pub type RpcExtension = jsonrpsee::RpcModule<()>;
@@ -41,8 +45,10 @@ where
     C::Api: BlockBuilder<Block>,
     P: TransactionPool + Sync + Send + 'static,
 {
-    use pallet_transaction_payment_rpc::{TransactionPayment, TransactionPaymentApiServer};
-    use substrate_frame_rpc_system::{System, SystemApiServer};
+    use pallet_transaction_payment_rpc::TransactionPayment;
+    use pallet_transaction_payment_rpc::TransactionPaymentApiServer;
+    use substrate_frame_rpc_system::System;
+    use substrate_frame_rpc_system::SystemApiServer;
 
     let mut module = RpcExtension::new(());
     let FullDeps { client, pool } = deps;

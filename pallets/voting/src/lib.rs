@@ -5,12 +5,13 @@
 //! - declaring a storage item that stores a single block-number
 //! - declaring and using events
 //! - declaring and using errors
-//! - a dispatchable function that allows a user to set a new value to storage and emits an event
-//!   upon success
+//! - a dispatchable function that allows a user to set a new value to storage
+//!   and emits an event upon success
 //! - another dispatchable function that causes a custom error to be thrown
 //!
-//! Each pallet section is annotated with an attribute using the `#[pallet::...]` procedural macro.
-//! This macro generates the necessary code for a pallet to be aggregated into a FRAME runtime.
+//! Each pallet section is annotated with an attribute using the
+//! `#[pallet::...]` procedural macro. This macro generates the necessary code
+//! for a pallet to be aggregated into a FRAME runtime.
 //!
 //! To get started with pallet development, consider using this tutorial:
 //!
@@ -27,18 +28,20 @@
 //!
 //! The pallet sections in this voting are:
 //!
-//! - A **configuration trait** that defines the types and parameters which the pallet depends on
-//!   (denoted by the `#[pallet::config]` attribute). See: [`Config`].
-//! - A **means to store pallet-specific data** (denoted by the `#[pallet::storage]` attribute).
-//!   See: [`storage_types`].
-//! - A **declaration of the events** this pallet emits (denoted by the `#[pallet::event]`
-//!   attribute). See: [`Event`].
-//! - A **declaration of the errors** that this pallet can throw (denoted by the `#[pallet::error]`
-//!   attribute). See: [`Error`].
-//! - A **set of dispatchable functions** that define the pallet's functionality (denoted by the
-//!   `#[pallet::call]` attribute). See: [`dispatchables`].
+//! - A **configuration trait** that defines the types and parameters which the
+//!   pallet depends on (denoted by the `#[pallet::config]` attribute). See:
+//!   [`Config`].
+//! - A **means to store pallet-specific data** (denoted by the
+//!   `#[pallet::storage]` attribute). See: [`storage_types`].
+//! - A **declaration of the events** this pallet emits (denoted by the
+//!   `#[pallet::event]` attribute). See: [`Event`].
+//! - A **declaration of the errors** that this pallet can throw (denoted by the
+//!   `#[pallet::error]` attribute). See: [`Error`].
+//! - A **set of dispatchable functions** that define the pallet's functionality
+//!   (denoted by the `#[pallet::call]` attribute). See: [`dispatchables`].
 //!
-//! Run `cargo doc --package pallet-voting --open` to view this pallet's documentation.
+//! Run `cargo doc --package pallet-voting --open` to view this pallet's
+//! documentation.
 
 #![cfg_attr(not(feature = "std"), no_std)]
 
@@ -63,26 +66,31 @@ mod benchmarking;
 // <https://paritytech.github.io/polkadot-sdk/master/frame_support/pallet_macros/index.html>
 #[frame_support::pallet]
 pub mod pallet {
-    use frame_support::{dispatch::DispatchResultWithPostInfo, pallet_prelude::*, DefaultNoBound};
+    use frame_support::dispatch::DispatchResultWithPostInfo;
+    use frame_support::pallet_prelude::*;
+    use frame_support::DefaultNoBound;
     use frame_system::pallet_prelude::*;
-    use sp_runtime::traits::{CheckedAdd, One};
+    use sp_runtime::traits::CheckedAdd;
+    use sp_runtime::traits::One;
 
-    /// Configure the pallet by specifying the parameters and types on which it depends.
+    /// Configure the pallet by specifying the parameters and types on which it
+    /// depends.
     #[pallet::config]
     pub trait Config: frame_system::Config {
-        /// Because this pallet emits events, it depends on the runtime's definition of an event.
-        /// <https://paritytech.github.io/polkadot-sdk/master/polkadot_sdk_docs/reference_docs/frame_runtime_types/index.html>
+        /// Because this pallet emits events, it depends on the runtime's
+        /// definition of an event. <https://paritytech.github.io/polkadot-sdk/master/polkadot_sdk_docs/reference_docs/frame_runtime_types/index.html>
         type RuntimeEvent: From<Event<Self>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
 
-        /// A type representing the weights required by the dispatchables of this pallet.
+        /// A type representing the weights required by the dispatchables of
+        /// this pallet.
         type WeightInfo: crate::weights::WeightInfo;
     }
 
     #[pallet::pallet]
     pub struct Pallet<T>(_);
 
-    /// A struct to store a single block-number. Has all the right derives to store it in storage.
-    /// <https://paritytech.github.io/polkadot-sdk/master/polkadot_sdk_docs/reference_docs/frame_storage_derives/index.html>
+    /// A struct to store a single block-number. Has all the right derives to
+    /// store it in storage. <https://paritytech.github.io/polkadot-sdk/master/polkadot_sdk_docs/reference_docs/frame_storage_derives/index.html>
     #[derive(
         Encode, Decode, MaxEncodedLen, TypeInfo, CloneNoBound, PartialEqNoBound, DefaultNoBound,
     )]
@@ -123,14 +131,15 @@ pub mod pallet {
     #[pallet::hooks]
     impl<T: Config> Hooks<BlockNumberFor<T>> for Pallet<T> {}
 
-    /// Dispatchable functions allows users to interact with the pallet and invoke state changes.
-    /// These functions materialize as "extrinsics", which are often compared to transactions.
-    /// Dispatchable functions must be annotated with a weight and must return a DispatchResult.
-    /// <https://paritytech.github.io/polkadot-sdk/master/polkadot_sdk_docs/guides/your_first_pallet/index.html#dispatchables>
+    /// Dispatchable functions allows users to interact with the pallet and
+    /// invoke state changes. These functions materialize as "extrinsics",
+    /// which are often compared to transactions. Dispatchable functions
+    /// must be annotated with a weight and must return a DispatchResult. <https://paritytech.github.io/polkadot-sdk/master/polkadot_sdk_docs/guides/your_first_pallet/index.html#dispatchables>
     #[pallet::call]
     impl<T: Config> Pallet<T> {
-        /// An example dispatchable that takes a singles value as a parameter, writes the value to
-        /// storage and emits an event. This function must be dispatched by a signed extrinsic.
+        /// An example dispatchable that takes a singles value as a parameter,
+        /// writes the value to storage and emits an event. This
+        /// function must be dispatched by a signed extrinsic.
         #[pallet::call_index(0)]
         #[pallet::weight(Weight::from_parts(10_000, 0) + T::DbWeight::get().writes(1))]
         pub fn do_something(origin: OriginFor<T>, bn: u32) -> DispatchResultWithPostInfo {
@@ -139,8 +148,8 @@ pub mod pallet {
             // <https://paritytech.github.io/polkadot-sdk/master/polkadot_sdk_docs/reference_docs/frame_origin/index.html>
             let who = ensure_signed(origin)?;
 
-            // Convert the u32 into a block number. This is possible because the set of trait bounds
-            // defined in [`frame_system::Config::BlockNumber`].
+            // Convert the u32 into a block number. This is possible because the set of
+            // trait bounds defined in [`frame_system::Config::BlockNumber`].
             let block_number: BlockNumberFor<T> = bn.into();
 
             // Update storage.

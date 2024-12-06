@@ -44,7 +44,7 @@ impl<T: frame_system::Config> WeightInfo for SubstrateWeight<T> {
 	/// Storage: VotingModule Something (r:0 w:1)
 	/// Proof: VotingModule Something (max_values: Some(1), max_size: Some(4), added: 499, mode: MaxEncodedLen)
 	fn do_something() -> Weight {
-		// Proof Size summary in bytes:
+    // Proof Size summary in bytes:
 		//  Measured:  `0`
 		//  Estimated: `0`
 		// Minimum execution time: 8_000_000 picoseconds.

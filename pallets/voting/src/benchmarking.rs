@@ -1,15 +1,17 @@
 //! Benchmarking setup for pallet-voting
 #![cfg(feature = "runtime-benchmarks")]
 
-use super::*;
 use frame_benchmarking::v2::*;
+
+use super::*;
 
 #[benchmarks]
 mod benchmarks {
+    use frame_system::RawOrigin;
+
     use super::*;
     #[cfg(test)]
     use crate::pallet::Pallet as Voting;
-    use frame_system::RawOrigin;
 
     #[benchmark]
     fn do_something() {
