@@ -27,7 +27,6 @@ The most popular Community Notes feature exemplifies the challenges faced when i
 At the moment, [those](https://github.com/twitter/communitynotes/blob/main/documentation/about/challenges.md?plain=1#L20) platforms mirror exactly the same problem that they are trying to solve, by not having a trully diverse group of people in a general[^2] public to score and fact-check the information.
 
 ```mermaid
-%%{init: {'theme': 'neutral' } }%%
 
 sequenceDiagram
     participant A as Proposer
