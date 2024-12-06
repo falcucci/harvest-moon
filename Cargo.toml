@@ -7,7 +7,6 @@ edition = "2021"
 
 [workspace]
 members = ["node", "pallets/voting", "runtime"]
-# members = ["node", "runtime"]
 resolver = "2"
 
 [workspace.dependencies]
