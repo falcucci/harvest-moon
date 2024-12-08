@@ -1,4 +1,10 @@
+<div align="center">
+
+# Harvest Moon
+
 A community-based platform agnostic fact-checking system
+
+</div>
 
 **NOTE**: _This is an experimental project, no research has been conducted to actually prove economic costs of this governance system._
 
