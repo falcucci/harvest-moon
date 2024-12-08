@@ -1,6 +1,6 @@
 A community-based platform agnostic fact-checking system
 
-**NOTE**: This is an experimental solution, no research has been conducted to actually prove economic costs of this governance system.
+**NOTE**: _This is an experimental project, no research has been conducted to actually prove economic costs of this governance system._
 
 A community-based platform agnostic fact-checking collactor to verify the veracity[^1] of posts, comments or any user-based interaction calculating its outcomes rating which must be public.
 
