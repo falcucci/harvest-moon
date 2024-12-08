@@ -20,7 +20,7 @@ it is often possible to verify such inaccuracies through a simple internet searc
 
 </div>
 
-For community-based fact-checking systems to achieve their intended purpose of enhancing information accuracy, they must be designed with mechanisms that ensure a balanced representation of diverse and genuine point of view, which is something that the Quadratic Voting system can help to achieve adding a pos training model to
+For community-based fact-checking systems to achieve their intended purpose of enhancing information accuracy, they must be designed with mechanisms that ensure a balanced representation of diverse and genuine point of view, which is something that the [Quadratic Voting](https://papers.ssrn.com/sol3/papers.cfm?abstract_id=2003531) system can help to achieve.
 
 The most popular Community Notes feature exemplifies the challenges faced when implementing community-based fact-checking systems. In communities predominantly leaning towards a specific political ideology, the system may fail to deliver unbiased fact-checking.
 
