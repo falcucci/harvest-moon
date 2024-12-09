@@ -2,7 +2,7 @@
 name = "pallet-voting"
 description = "FRAME pallet voting for defining custom runtime logic."
 version = "0.1.0"
-license = "Unlicense"
+license = "Apache-2.0"
 authors.workspace = true
 homepage.workspace = true
 repository.workspace = true

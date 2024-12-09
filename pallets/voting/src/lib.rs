@@ -72,8 +72,7 @@ pub mod pallet {
         CountedStorageMap<_, Blake2_128Concat, T::AccountId, BalanceOf<T>, ValueQuery>;
 
     #[pallet::pallet]
-    // #[pallet::generate_store(pub(super) trait Store)]
-    // #[pallet::without_storage_info]
+    #[pallet::without_storage_info]
     pub struct Pallet<T>(_);
 
     /// Events that functions in this pallet can emit.
