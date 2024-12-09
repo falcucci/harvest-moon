@@ -233,6 +233,7 @@ pub const UNIT: u128 = 1000000000000;
 
 parameter_types! {
     pub const EntryFee: Balance = 30_000 * UNIT;
+    pub const MaxProposals: u32 = 10u32;
 }
 
 /// Configure the pallet-voting in pallets/voting.
@@ -242,4 +243,5 @@ impl pallet_voting::Config for Runtime {
     type IdentityProvider = VotingIdentityProvider;
     type Currency = Balances;
     type BasicDeposit = EntryFee;
+    type MaxProposals = MaxProposals;
 }

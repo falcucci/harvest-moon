@@ -15,6 +15,8 @@ mod mock;
 #[cfg(test)]
 mod tests;
 
+pub mod types;
+
 // Every callable function or "dispatchable" a pallet exposes must have weight
 // values that correctly estimate a dispatchable's execution time. The
 // benchmarking module is used to calculate weights for each dispatchable and generates this pallet's weight.rs file. Learn more about benchmarking here: https://docs.substrate.io/test/benchmark/
@@ -35,11 +37,17 @@ pub mod pallet {
     use frame_support::traits::Currency;
     use frame_support::traits::ReservableCurrency;
     use frame_support::Blake2_128Concat;
+    use frame_support::Identity;
+    use frame_support::StorageMap;
     use frame_system::pallet_prelude::*;
+    use scale_info::prelude::vec::Vec;
+    use types::Proposal;
 
     use super::*;
 
     pub type MemberCount = u32;
+    pub type ProposalIndex = u32;
+    pub type BlockNumber = u32;
 
     type BalanceOf<T> =
         <<T as Config>::Currency as Currency<<T as frame_system::Config>::AccountId>>::Balance;
@@ -59,8 +67,13 @@ pub mod pallet {
         type RuntimeEvent: From<Event<Self>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
         type IdentityProvider: IdentityProvider<Self::AccountId>;
         type Currency: ReservableCurrency<Self::AccountId>;
+
+        /// The amount of funds that is required to have skin in a game
         #[pallet::constant]
         type BasicDeposit: Get<BalanceOf<Self>>;
+
+        /// Maximum number of proposals allowed to be active in parallel.
+        type MaxProposals: Get<ProposalIndex>;
 
         /// A type representing the weights required by the dispatchables of
         /// this pallet.
@@ -70,6 +83,10 @@ pub mod pallet {
     #[pallet::storage]
     pub type Members<T: Config> =
         CountedStorageMap<_, Blake2_128Concat, T::AccountId, BalanceOf<T>, ValueQuery>;
+
+    #[pallet::storage]
+    pub type Proposals<T: Config> =
+        StorageValue<_, Vec<Proposal<T::AccountId, BlockNumberFor<T>>>, ValueQuery>;
 
     #[pallet::pallet]
     #[pallet::without_storage_info]
@@ -213,6 +230,8 @@ pub mod pallet {
 
             T::Currency::reserve(&signer, T::BasicDeposit::get())?;
             <Members<T>>::insert(&signer, T::BasicDeposit::get());
+
+            Self::deposit_event(Event::<T>::Joined(signer));
 
             Ok(())
         }
