@@ -141,6 +141,10 @@ pub mod pallet {
     pub enum Error<T> {
         /// Account is not a member
         NotMember,
+        /// Account is a already a member
+        AlreadyMember,
+        /// Account does not have an identity
+        NoIdentity,
         /// Duplicate proposals not allowed
         DuplicateProposal,
         /// Proposal must exist
@@ -191,15 +195,30 @@ pub mod pallet {
         #[pallet::weight(T::WeightInfo::join_committee())]
         pub fn join_committee(origin: OriginFor<T>) -> DispatchResult {
             let signer = ensure_signed(origin)?;
+
+            // check if signer is a member already | tested
+            ensure!(!Self::is_member(&signer), Error::<T>::AlreadyMember);
+
+            //check if signer has identity | tested
+            ensure!(
+                T::IdentityProvider::check_existence(&signer),
+                Error::<T>::NoIdentity
+            );
+
+            // check if the account has enough money to deposit
             ensure!(
                 T::Currency::can_reserve(&signer, T::BasicDeposit::get()),
                 Error::<T>::NotEnoughFunds
             );
-            //TODO: check if signer has identity
-            //TODO: check if signer is a member already
-            //TODO: deposit
+
+            T::Currency::reserve(&signer, T::BasicDeposit::get())?;
             <Members<T>>::insert(&signer, T::BasicDeposit::get());
+
             Ok(())
         }
     }
+}
+
+impl<T: Config> Pallet<T> {
+    pub fn is_member(account: &T::AccountId) -> bool { Members::<T>::contains_key(account) }
 }

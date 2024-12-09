@@ -229,8 +229,10 @@ impl pallet_voting::IdentityProvider<AccountId> for VotingIdentityProvider {
     }
 }
 
+pub const UNIT: u128 = 1000000000000;
+
 parameter_types! {
-    pub const EntryFee: Balance = 1_000_000_000;
+    pub const EntryFee: Balance = 30_000 * UNIT;
 }
 
 /// Configure the pallet-voting in pallets/voting.
