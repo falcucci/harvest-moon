@@ -221,8 +221,23 @@ impl pallet_identity::Config for Runtime {
     type WeightInfo = pallet_identity::weights::SubstrateWeight<Runtime>;
 }
 
+pub struct VotingIdentityProvider;
+
+impl pallet_voting::IdentityProvider<AccountId> for VotingIdentityProvider {
+    fn check_existence(account: &AccountId) -> bool {
+        crate::Identity::identity(account.clone()).is_some()
+    }
+}
+
+parameter_types! {
+    pub const EntryFee: Balance = 1_000_000_000;
+}
+
 /// Configure the pallet-voting in pallets/voting.
 impl pallet_voting::Config for Runtime {
     type RuntimeEvent = RuntimeEvent;
     type WeightInfo = pallet_voting::weights::SubstrateWeight<Runtime>;
+    type IdentityProvider = VotingIdentityProvider;
+    type Currency = Balances;
+    type BasicDeposit = EntryFee;
 }
