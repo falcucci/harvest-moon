@@ -29,6 +29,7 @@ pallet-aura.workspace = true
 pallet-balances.workspace = true
 pallet-grandpa.workspace = true
 pallet-sudo.workspace = true
+pallet-collective.workspace = true
 pallet-timestamp.workspace = true
 pallet-transaction-payment.workspace = true
 sp-api.workspace = true
@@ -73,6 +74,7 @@ std = [
 	"pallet-balances/std",
 	"pallet-grandpa/std",
 	"pallet-sudo/std",
+  "pallet-collective/std",
 	"pallet-voting/std",
 	"pallet-timestamp/std",
 	"pallet-transaction-payment-rpc-runtime-api/std",
