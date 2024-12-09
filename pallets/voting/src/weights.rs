@@ -28,23 +28,12 @@ use frame_support::weights::Weight;
 /// Weight functions needed for pallet_voting.
 pub trait WeightInfo {
     fn join_committee() -> Weight;
-    fn do_something() -> Weight;
     fn cause_error() -> Weight;
 }
 
 /// Weights for pallet_voting using the Substrate node and recommended hardware.
 pub struct SubstrateWeight<T>(PhantomData<T>);
 impl<T: frame_system::Config> WeightInfo for SubstrateWeight<T> {
-    /// Storage: VotingModule Something (r:0 w:1)
-    /// Proof: VotingModule Something (max_values: Some(1), max_size: Some(4),
-    /// added: 499, mode: MaxEncodedLen)
-    fn do_something() -> Weight {
-        // Proof Size summary in bytes:
-        //  Measured:  `0`
-        //  Estimated: `0`
-        // Minimum execution time: 8_000_000 picoseconds.
-        Weight::from_parts(9_000_000, 0).saturating_add(T::DbWeight::get().writes(1_u64))
-    }
     /// Storage: VotingModule Something (r:1 w:1)
     /// Proof: VotingModule Something (max_values: Some(1), max_size: Some(4),
     /// added: 499, mode: MaxEncodedLen)
@@ -58,6 +47,9 @@ impl<T: frame_system::Config> WeightInfo for SubstrateWeight<T> {
             .saturating_add(T::DbWeight::get().writes(1_u64))
     }
 
+    /// Storage: VotingModule Something (r:0 w:1)
+    /// Proof: VotingModule Something (max_values: Some(1), max_size: Some(4),
+    /// added: 499, mode: MaxEncodedLen)
     fn join_committee() -> Weight {
         // Proof Size summary in bytes:
         //  Measured:  `0`
@@ -69,16 +61,6 @@ impl<T: frame_system::Config> WeightInfo for SubstrateWeight<T> {
 
 // For backwards compatibility and tests
 impl WeightInfo for () {
-    /// Storage: VotingModule Something (r:0 w:1)
-    /// Proof: VotingModule Something (max_values: Some(1), max_size: Some(4),
-    /// added: 499, mode: MaxEncodedLen)
-    fn do_something() -> Weight {
-        // Proof Size summary in bytes:
-        //  Measured:  `0`
-        //  Estimated: `0`
-        // Minimum execution time: 8_000_000 picoseconds.
-        Weight::from_parts(9_000_000, 0).saturating_add(RocksDbWeight::get().writes(1_u64))
-    }
     /// Storage: VotingModule Something (r:1 w:1)
     /// Proof: VotingModule Something (max_values: Some(1), max_size: Some(4),
     /// added: 499, mode: MaxEncodedLen)
