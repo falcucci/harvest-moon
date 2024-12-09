@@ -52,6 +52,7 @@ use super::{
     RuntimeCall, RuntimeEvent, RuntimeFreezeReason, RuntimeHoldReason, RuntimeOrigin, RuntimeTask,
     System, EXISTENTIAL_DEPOSIT, SLOT_DURATION, VERSION,
 };
+use crate::Signature;
 use crate::DAYS;
 
 const NORMAL_DISPATCH_RATIO: Perbill = Perbill::from_percent(75);
@@ -72,6 +73,13 @@ parameter_types! {
     pub const CouncilMaxProposals: u32 = 100;
     pub const CouncilMaxMembers: u32 = 100;
     pub MaxProposalWeight: Weight = Perbill::from_percent(50) * RuntimeBlockWeights::get().max_block;
+
+    pub const BasicDeposit: Balance = 0;
+    pub const FieldDeposit: Balance = 0;
+    pub const SubAccountDeposit: Balance = 0;
+    pub const MaxSubAccounts: u32 = 100;
+    pub const MaxAdditionalFields: u32 = 100;
+    pub const MaxRegistrars: u32 = 20;
 }
 
 /// The default types are being injected by
@@ -184,6 +192,33 @@ impl pallet_collective::Config for Runtime {
     type SetMembersOrigin = frame_system::EnsureRoot<AccountId>;
     type MaxProposalWeight = MaxProposalWeight;
     type WeightInfo = pallet_collective::weights::SubstrateWeight<Runtime>;
+}
+
+// ensure that at least half of the council votes for
+type EnsureRootOrHalfCouncil = frame_support::traits::EitherOfDiverse<
+    frame_system::EnsureRoot<AccountId>,
+    pallet_collective::EnsureProportionMoreThan<AccountId, (), 1, 2>,
+>;
+
+impl pallet_identity::Config for Runtime {
+    type RuntimeEvent = RuntimeEvent;
+    type BasicDeposit = BasicDeposit;
+    type ByteDeposit = FieldDeposit;
+    type SubAccountDeposit = SubAccountDeposit;
+    type IdentityInformation = pallet_identity::legacy::IdentityInfo<MaxAdditionalFields>;
+    type OffchainSignature = Signature;
+    type SigningPublicKey = <Signature as sp_runtime::traits::Verify>::Signer;
+    type UsernameAuthorityOrigin = frame_system::EnsureRoot<AccountId>;
+    type PendingUsernameExpiration = ConstU32<{ 7 * DAYS }>;
+    type MaxSuffixLength = ConstU32<16>;
+    type MaxUsernameLength = ConstU32<32>;
+    type Currency = Balances;
+    type Slashed = ();
+    type ForceOrigin = EnsureRootOrHalfCouncil;
+    type RegistrarOrigin = EnsureRootOrHalfCouncil;
+    type MaxRegistrars = MaxRegistrars;
+    type MaxSubAccounts = MaxSubAccounts;
+    type WeightInfo = pallet_identity::weights::SubstrateWeight<Runtime>;
 }
 
 /// Configure the pallet-voting in pallets/voting.

@@ -64,6 +64,7 @@ pallet-grandpa = { version = "38.0.0", default-features = false }
 pallet-sudo = { version = "38.0.0", default-features = false }
 pallet-timestamp = { version = "37.0.0", default-features = false }
 pallet-collective = { version = "38.0.0", default-features = false }
+pallet-identity = { version = "38.0.0", default-features = false }
 pallet-transaction-payment-rpc-runtime-api = { version = "38.0.0", default-features = false }
 scale-info = { version = "2.11.1", default-features = false }
 sp-genesis-builder = { version = "0.15.1", default-features = false }

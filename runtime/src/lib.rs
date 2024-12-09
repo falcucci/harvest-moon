@@ -14,6 +14,7 @@ use alloc::vec::Vec;
 pub use frame_system::Call as SystemCall;
 pub use pallet_balances::Call as BalancesCall;
 pub use pallet_collective::Call as CollectiveCall;
+pub use pallet_identity::Call as IdentityCall;
 pub use pallet_timestamp::Call as TimestampCall;
 use sp_runtime::create_runtime_str;
 use sp_runtime::generic;
@@ -235,4 +236,7 @@ mod runtime {
 
     #[runtime::pallet_index(8)]
     pub type Collective = pallet_collective;
+
+    #[runtime::pallet_index(9)]
+    pub type Identity = pallet_identity;
 }
