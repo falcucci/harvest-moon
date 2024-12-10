@@ -230,7 +230,6 @@ mod runtime {
     #[runtime::pallet_index(6)]
     pub type Sudo = pallet_sudo;
 
-    // Include the custom logic from the pallet-voting in the runtime.
     #[runtime::pallet_index(7)]
     pub type VotingModule = pallet_voting;
 

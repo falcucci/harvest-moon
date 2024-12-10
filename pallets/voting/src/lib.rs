@@ -15,6 +15,7 @@ mod mock;
 #[cfg(test)]
 mod tests;
 
+// We need to define the types used in this pallet.
 pub mod types;
 
 // Every callable function or "dispatchable" a pallet exposes must have weight
@@ -37,8 +38,6 @@ pub mod pallet {
     use frame_support::traits::Currency;
     use frame_support::traits::ReservableCurrency;
     use frame_support::Blake2_128Concat;
-    use frame_support::Identity;
-    use frame_support::StorageMap;
     use frame_system::pallet_prelude::*;
     use scale_info::prelude::vec::Vec;
     use types::Proposal;
