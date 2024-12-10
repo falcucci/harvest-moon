@@ -126,10 +126,6 @@ pub mod pallet {
     }
 
     #[pallet::storage]
-    pub type Members<T: Config> =
-        CountedStorageMap<_, Blake2_128Concat, T::AccountId, BalanceOf<T>, ValueQuery>;
-
-    #[pallet::storage]
     pub type Proposals<T: Config> =
         StorageValue<_, BoundedVec<T::Hash, T::MaxProposals>, ValueQuery>;
 
@@ -139,10 +135,11 @@ pub mod pallet {
 
     #[pallet::storage]
     pub type Commits<T: Config> =
-        StorageDoubleMap<_, Identity, T::Hash, Identity, T::AccountId, Commit<T::Signature>>;
+        StorageDoubleMap<_, Identity, T::AccountId, Identity, T::Hash, Commit<T::Signature>>;
 
     #[pallet::storage]
-    pub type AccountVotes<T: Config> = StorageMap<_, Identity, T::AccountId, VoteToken, ValueQuery>;
+    pub type Members<T: Config> =
+        CountedStorageMap<_, Identity, T::AccountId, VoteToken, ValueQuery>;
 
     #[pallet::pallet]
     #[pallet::without_storage_info]
@@ -326,7 +323,6 @@ pub mod pallet {
             );
 
             T::Currency::reserve(&signer, T::BasicDeposit::get())?;
-            <Members<T>>::insert(&signer, T::BasicDeposit::get());
 
             //deposit 100 voting tokens to the voter
             Self::deposit_votes(&signer, 100);
@@ -337,6 +333,27 @@ pub mod pallet {
         }
 
         #[pallet::call_index(1)]
+        #[pallet::weight(T::WeightInfo::leave_committee())]
+        pub fn leave_committee(origin: OriginFor<T>) -> DispatchResult {
+            let signer = ensure_signed(origin)?;
+            //check if signer has identity | tested
+            ensure!(
+                T::IdentityProvider::check_existence(&signer),
+                Error::<T>::NoIdentity
+            );
+            let active_votes = <Commits<T>>::iter_prefix_values(signer.clone()).count();
+            ensure!(active_votes == 0, Error::<T>::InMotion);
+            let balance = T::Currency::unreserve(&signer, T::Currency::reserved_balance(&signer));
+            //remove entries
+            <Members<T>>::remove(signer.clone());
+            Self::deposit_event(Event::<T>::Left {
+                account: signer,
+                cashout: balance,
+            });
+            Ok(())
+        }
+
+        #[pallet::call_index(2)]
         #[pallet::weight(T::WeightInfo::create_proposal())]
         pub fn create_proposal(
             origin: OriginFor<T>,
@@ -389,7 +406,7 @@ pub mod pallet {
             Ok(())
         }
 
-        #[pallet::call_index(2)]
+        #[pallet::call_index(3)]
         #[pallet::weight(T::WeightInfo::close_vote())]
         pub fn close_vote(origin: OriginFor<T>, proposal: T::Hash) -> DispatchResult {
             let signer = ensure_signed(origin)?;
@@ -420,7 +437,7 @@ pub mod pallet {
             Ok(())
         }
 
-        #[pallet::call_index(3)]
+        #[pallet::call_index(4)]
         #[pallet::weight(T::WeightInfo::close_reveal())]
         pub fn close_reveal(origin: OriginFor<T>, proposal: T::Hash) -> DispatchResult {
             let signer = ensure_signed(origin)?;
@@ -501,7 +518,7 @@ pub mod pallet {
             Ok(())
         }
 
-        #[pallet::call_index(4)]
+        #[pallet::call_index(5)]
         #[pallet::weight(T::WeightInfo::reveal_vote())]
         pub fn reveal_vote(origin: OriginFor<T>, proposal: T::Hash, vote: Vote) -> DispatchResult {
             let signer = ensure_signed(origin)?;
@@ -510,7 +527,7 @@ pub mod pallet {
             ensure!(Self::is_member(&signer), Error::<T>::NotMember);
 
             //verify the signature
-            let commit = <Commits<T>>::get(&proposal, &signer);
+            let commit = <Commits<T>>::take(&signer, &proposal);
             ensure!(commit.is_some(), Error::<T>::NoCommit);
             let commit = commit.unwrap();
 
@@ -525,7 +542,17 @@ pub mod pallet {
             let reveal_exist = proposal_data.reveal_end;
             if let Some(reveal_end) = reveal_exist {
                 let current_block = frame_system::Pallet::<T>::block_number();
-                ensure!(reveal_end > current_block, Error::<T>::RevealEnded);
+                // if voter decides to reveal votes after the end, he will just be slashed
+                // the voter is incentivised to perform this action in order to refund voting
+                // tokens or to cash out
+                if current_block > reveal_end {
+                    let pot_address = Self::account_id();
+                    let _ = Self::slash_voting_side(vec![signer.clone()], &pot_address)?;
+                    let amount = u8::pow(commit.number, 2);
+                    Self::deposit_votes(&signer, amount);
+                    //probably need to refund, but let it be additional punishment
+                    return Ok(());
+                }
             }
 
             let voted = Self::already_voted(&signer, &proposal_data);
@@ -549,7 +576,7 @@ pub mod pallet {
             Ok(())
         }
 
-        #[pallet::call_index(5)]
+        #[pallet::call_index(6)]
         #[pallet::weight(T::WeightInfo::commit_vote())]
         pub fn commit_vote(
             origin: OriginFor<T>,
@@ -592,7 +619,7 @@ pub mod pallet {
                 salt,
                 number,
             };
-            <Commits<T>>::insert(proposal, signer.clone(), commit);
+            <Commits<T>>::insert(signer.clone(), proposal, commit);
 
             Self::deposit_event(Event::<T>::Committed {
                 account: signer,
@@ -620,13 +647,13 @@ impl<T: Config> Pallet<T> {
     }
 
     pub fn already_committed_and_exist(who: &T::AccountId, proposal_hash: &T::Hash) -> bool {
-        <Commits<T>>::get(proposal_hash, who).is_some()
+        <Commits<T>>::get(who, proposal_hash).is_some()
     }
 
     /// Deposit voting tokens to the account and make sure it does not exceed
     /// the limit
     pub fn deposit_votes(who: &T::AccountId, tokens: u8) {
-        <AccountVotes<T>>::mutate(who, |balance| {
+        <Members<T>>::mutate(who, |balance| {
             *balance += tokens;
             if *balance > 100u8 {
                 *balance = 100u8;
@@ -637,7 +664,7 @@ impl<T: Config> Pallet<T> {
     /// tries to decrease the voting tokens of a specific account by specified
     /// amount. Returns false if account does not have enough voting tokens
     pub fn decrease_votes(who: &T::AccountId, amount: u8) -> bool {
-        <AccountVotes<T>>::try_mutate(who, |balance| {
+        <Members<T>>::try_mutate(who, |balance| {
             if *balance < amount {
                 return Err(());
             }
