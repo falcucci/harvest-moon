@@ -21,3 +21,9 @@ pub struct Proposal<AccountId, BlockNumberFor> {
     pub nays: Vec<AccountId>,
     pub end: BlockNumberFor,
 }
+
+#[derive(Clone, Eq, PartialEq, RuntimeDebug, Encode, Decode, TypeInfo)]
+pub enum Vote {
+    Yes,
+    No,
+}

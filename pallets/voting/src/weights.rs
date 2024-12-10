@@ -30,6 +30,7 @@ pub trait WeightInfo {
     fn join_committee() -> Weight;
     fn create_proposal() -> Weight;
     fn cause_error() -> Weight;
+    fn vote() -> Weight;
 }
 
 /// Weights for pallet_voting using the Substrate node and recommended hardware.
@@ -50,6 +51,10 @@ impl<T: frame_system::Config> WeightInfo for SubstrateWeight<T> {
         Weight::from_parts(9_000_000, 0).saturating_add(T::DbWeight::get().writes(1_u64))
     }
 
+    fn vote() -> Weight {
+        Weight::from_parts(9_000_000, 0).saturating_add(T::DbWeight::get().writes(1_u64))
+    }
+
     /// Storage: VotingModule Something (r:1 w:1)
     /// Proof: VotingModule Something (max_values: Some(1), max_size: Some(4),
     /// added: 499, mode: MaxEncodedLen)
@@ -66,19 +71,6 @@ impl<T: frame_system::Config> WeightInfo for SubstrateWeight<T> {
 
 // For backwards compatibility and tests
 impl WeightInfo for () {
-    /// Storage: VotingModule Something (r:1 w:1)
-    /// Proof: VotingModule Something (max_values: Some(1), max_size: Some(4),
-    /// added: 499, mode: MaxEncodedLen)
-    fn cause_error() -> Weight {
-        // Proof Size summary in bytes:
-        //  Measured:  `32`
-        //  Estimated: `1489`
-        // Minimum execution time: 6_000_000 picoseconds.
-        Weight::from_parts(6_000_000, 1489)
-            .saturating_add(RocksDbWeight::get().reads(1_u64))
-            .saturating_add(RocksDbWeight::get().writes(1_u64))
-    }
-
     fn join_committee() -> Weight {
         // Proof Size summary in bytes:
         //  Measured:  `0`
@@ -93,5 +85,26 @@ impl WeightInfo for () {
         //  Estimated: `0`
         // Minimum execution time: 9_000_000 picoseconds.
         Weight::from_parts(9_000_000, 0).saturating_add(RocksDbWeight::get().writes(1_u64))
+    }
+
+    fn vote() -> Weight {
+        // Proof Size summary in bytes:
+        //  Measured:  `0`
+        //  Estimated: `0`
+        // Minimum execution time: 9_000_000 picoseconds.
+        Weight::from_parts(9_000_000, 0).saturating_add(RocksDbWeight::get().writes(1_u64))
+    }
+
+    /// Storage: VotingModule Something (r:1 w:1)
+    /// Proof: VotingModule Something (max_values: Some(1), max_size: Some(4),
+    /// added: 499, mode: MaxEncodedLen)
+    fn cause_error() -> Weight {
+        // Proof Size summary in bytes:
+        //  Measured:  `32`
+        //  Estimated: `1489`
+        // Minimum execution time: 6_000_000 picoseconds.
+        Weight::from_parts(6_000_000, 1489)
+            .saturating_add(RocksDbWeight::get().reads(1_u64))
+            .saturating_add(RocksDbWeight::get().writes(1_u64))
     }
 }

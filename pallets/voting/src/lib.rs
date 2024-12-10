@@ -45,6 +45,7 @@ pub mod pallet {
     use scale_info::prelude::vec::Vec;
     use types::Data;
     use types::Proposal;
+    use types::Vote;
 
     use super::*;
 
@@ -125,14 +126,10 @@ pub mod pallet {
         Proposed {
             account: T::AccountId,
             proposal_hash: T::Hash,
-            threshold: MemberCount,
         },
         Voted {
             account: T::AccountId,
             proposal_hash: T::Hash,
-            vote: bool,
-            yes: MemberCount,
-            no: MemberCount,
         },
         Approved {
             proposal_hash: T::Hash,
@@ -271,14 +268,50 @@ pub mod pallet {
                 <Proposals<T>>::try_append(proposal_hash).is_ok(),
                 Error::<T>::WrongProposalLength
             );
+
             let proposal = Proposal {
                 title: *community_note,
-                proposer: signer,
+                proposer: signer.clone(),
                 ayes: Vec::new(),
                 nays: Vec::new(),
                 end,
             };
+
             <ProposalData<T>>::insert(proposal_hash, proposal);
+            Self::deposit_event(Event::<T>::Proposed {
+                account: signer,
+                proposal_hash,
+            });
+
+            Ok(())
+        }
+
+        #[pallet::call_index(2)]
+        #[pallet::weight(T::WeightInfo::vote())]
+        pub fn vote(origin: OriginFor<T>, proposal: T::Hash, vote: Vote) -> DispatchResult {
+            let signer = ensure_signed(origin)?;
+            // check if signer is a member already
+            ensure!(Self::is_member(&signer), Error::<T>::NotMember);
+            let result = Self::already_voted_and_exist(&signer, &proposal);
+            ensure!(result.is_some(), Error::<T>::ProposalMissing);
+            let voted = result.unwrap();
+            ensure!(!voted, Error::<T>::DuplicateVote);
+            let proposal_data = <ProposalData<T>>::get(&proposal);
+            ensure!(proposal_data.is_some(), Error::<T>::ProposalMissing);
+            let mut proposal_data = proposal_data.unwrap();
+            match vote {
+                Vote::Yes => {
+                    proposal_data.ayes.push(signer.clone());
+                }
+                Vote::No => {
+                    proposal_data.nays.push(signer.clone());
+                }
+            };
+            <ProposalData<T>>::set(proposal, Some(proposal_data));
+            Self::deposit_event(Event::<T>::Voted {
+                account: signer,
+                proposal_hash: proposal,
+            });
 
             Ok(())
         }
@@ -287,8 +320,18 @@ pub mod pallet {
 
 impl<T: Config> Pallet<T> {
     pub fn is_member(account: &T::AccountId) -> bool { Members::<T>::contains_key(account) }
+
     pub fn proposal_exist(proposal: &T::Hash) -> (bool, BoundedVec<T::Hash, T::MaxProposals>) {
         let proposals = <Proposals<T>>::get();
         (proposals.contains(proposal), proposals)
+    }
+
+    pub fn already_voted_and_exist(who: &T::AccountId, proposal_hash: &T::Hash) -> Option<bool> {
+        let result = <ProposalData<T>>::get(proposal_hash);
+        if let Some(proposal) = result {
+            Some(proposal.ayes.contains(who) || proposal.nays.contains(who))
+        } else {
+            None
+        }
     }
 }

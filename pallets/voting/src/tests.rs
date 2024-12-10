@@ -9,6 +9,7 @@ use crate::mock::*;
 use crate::types::Data;
 use crate::Error;
 use crate::Event;
+use crate::Proposals;
 
 #[test]
 fn not_join_without_identity() {
@@ -19,6 +20,17 @@ fn not_join_without_identity() {
             VotingModule::join_committee(origin),
             Error::<Test>::NoIdentity
         );
+    });
+}
+
+#[test]
+fn join_with_identity() {
+    new_test_ext().execute_with(|| {
+        let alice = get_alice();
+        let origin = RuntimeOrigin::signed(alice);
+        let result = Identity::set_identity(origin.clone(), Box::new(data()));
+        assert!(result.is_ok());
+        assert_ok!(VotingModule::join_committee(origin));
     });
 }
 
@@ -34,6 +46,45 @@ fn disallow_action_for_non_members() {
             100,
         );
         assert_noop!(result, Error::<Test>::NotMember);
+    });
+}
+
+#[test]
+fn create_proposal_success() {
+    new_test_ext().execute_with(|| {
+        let alice = get_alice();
+        let origin = RuntimeOrigin::signed(alice);
+        let _ = Identity::set_identity(origin.clone(), Box::new(data()));
+
+        let _ = VotingModule::join_committee(origin.clone());
+
+        let result =
+            VotingModule::create_proposal(origin, Box::new(Data::Raw(BoundedVec::default())), 100);
+        assert_ok!(result);
+
+        let results = <Proposals<Test>>::get();
+        assert!(results.len() == 1);
+    });
+}
+
+#[test]
+fn no_proposal_duplicates() {
+    new_test_ext().execute_with(|| {
+        let alice = get_alice();
+        let origin = RuntimeOrigin::signed(alice);
+        let _ = Identity::set_identity(origin.clone(), Box::new(data()));
+
+        let _ = VotingModule::join_committee(origin.clone());
+
+        let _ = VotingModule::create_proposal(
+            origin.clone(),
+            Box::new(Data::Raw(BoundedVec::default())),
+            100,
+        );
+        let result =
+            VotingModule::create_proposal(origin, Box::new(Data::Raw(BoundedVec::default())), 100);
+
+        assert_noop!(result, Error::<Test>::DuplicateProposal);
     });
 }
 
