@@ -36,6 +36,7 @@ use frame_support::weights::constants::RocksDbWeight;
 use frame_support::weights::constants::WEIGHT_REF_TIME_PER_SECOND;
 use frame_support::weights::IdentityFee;
 use frame_support::weights::Weight;
+use frame_support::PalletId;
 use frame_system::limits::BlockLength;
 use frame_system::limits::BlockWeights;
 use pallet_transaction_payment::ConstFeeMultiplier;
@@ -252,6 +253,7 @@ parameter_types! {
     pub const RevealLength: BlockNumber = 50u32;
     pub const MinLength: BlockNumber = 50u32;
     pub const MaxTokens: u8 = 100u8;
+    pub const VotingPalletId: PalletId = PalletId(*b"p/v8t1ng");
 }
 
 /// Configure the pallet-voting in pallets/voting.
@@ -267,4 +269,5 @@ impl pallet_voting::Config for Runtime {
     type RevealLength = RevealLength;
     type MinLength = MinLength;
     type MaxVotingTokens = MaxTokens;
+    type PalletId = VotingPalletId;
 }

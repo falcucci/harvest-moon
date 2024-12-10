@@ -15,8 +15,8 @@ pub enum Data {
     Raw(BoundedVec<u8, ConstU32<2048>>),
 }
 
-#[derive(Clone, Eq, PartialEq, RuntimeDebug, Encode, Decode, TypeInfo)]
-pub struct Proposal<AccountId, BlockNumberFor> {
+#[derive(Clone, Eq, PartialEq, RuntimeDebug, Encode, Decode, TypeInfo, MaxEncodedLen)]
+pub struct Proposal<AccountId, BlockNumberFor, Balance> {
     /// The title of community note.
     pub title: Data,
     /// Who proposed
@@ -30,10 +30,12 @@ pub struct Proposal<AccountId, BlockNumberFor> {
     /// The hard end of reveal phase
     pub reveal_end: Option<BlockNumberFor>,
     /// The number of votes each voter gave
-    pub votes: Vec<(AccountId, u8)>,
+    pub votes: Vec<(AccountId, u8, Vote)>,
     /// Users who revealed their choices.
     /// Allows to verify who did not reveal on time
     pub revealed: Vec<AccountId>,
+    /// The amount that was slashed and distributed
+    pub payout: Balance,
 }
 
 #[derive(Clone, Eq, PartialEq, RuntimeDebug, Encode, Decode, TypeInfo)]

@@ -127,6 +127,7 @@ impl pallet_voting::Config for Test {
     type RevealLength = RevealLength;
     type MinLength = MinLength;
     type MaxVotingTokens = MaxTokens;
+    type PalletId = VotingPalletId;
 }
 
 pub fn get_charlie() -> AccountId { get_account_id_from_seed::<sr25519::Public>("Charlie") }
