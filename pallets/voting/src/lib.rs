@@ -1,6 +1,7 @@
 // We make sure this pallet uses `no_std` for compiling to Wasm.
 #![cfg_attr(not(feature = "std"), no_std)]
 
+use frame_system::pallet_prelude::BlockNumberFor;
 // Re-export pallet items so that they can be accessed from the crate namespace.
 pub use pallet::*;
 
@@ -83,6 +84,18 @@ pub mod pallet {
         #[pallet::constant]
         type BasicDeposit: Get<BalanceOf<Self>>;
 
+        /// The length of reveal phase
+        #[pallet::constant]
+        type RevealLength: Get<BlockNumberFor<Self>>;
+
+        /// Minimum length of proposal
+        #[pallet::constant]
+        type MinLength: Get<BlockNumberFor<Self>>;
+
+        /// Minimum length of proposal
+        #[pallet::constant]
+        type MaxVotingTokens: Get<u8>;
+
         /// Maximum number of proposals allowed to be active in parallel.
         type MaxProposals: Get<ProposalIndex>;
 
@@ -109,6 +122,9 @@ pub mod pallet {
     #[pallet::storage]
     pub type Commits<T: Config> =
         StorageDoubleMap<_, Identity, T::Hash, Identity, T::AccountId, Commit<T::Signature>>;
+
+    #[pallet::storage]
+    pub type AccountVotes<T: Config> = StorageMap<_, Identity, T::AccountId, VoteToken, ValueQuery>;
 
     #[pallet::pallet]
     #[pallet::without_storage_info]
@@ -209,6 +225,16 @@ pub mod pallet {
         NotEnoughFunds,
         /// Proposal Ended
         ProposalEnded,
+        ///
+        NotEnoughVotingTokens,
+        /// Voting phase ended
+        VoteEnded,
+        /// Vote has already ended when trying to close it
+        VoteAlreadyEnded,
+        /// Reveal phase ended
+        RevealEnded,
+        /// Reveal phase has not yet started
+        RevealNotStarted,
         /// No commit has been submitted
         NoCommit,
         /// Could not verify signature of a commit
@@ -262,6 +288,9 @@ pub mod pallet {
             T::Currency::reserve(&signer, T::BasicDeposit::get())?;
             <Members<T>>::insert(&signer, T::BasicDeposit::get());
 
+            //deposit 100 voting tokens to the voter
+            Self::deposit_votes(&signer, 100);
+
             Self::deposit_event(Event::<T>::Joined(signer));
 
             Ok(())
@@ -275,6 +304,10 @@ pub mod pallet {
             duration: BlockNumberFor<T>,
         ) -> DispatchResult {
             let signer = ensure_signed(origin)?;
+
+            if duration < T::MinLength::get() {
+                ensure!(false, Error::<T>::WrongProposalLength);
+            }
 
             // check if signer is a member already
             ensure!(Self::is_member(&signer), Error::<T>::NotMember);
@@ -290,7 +323,7 @@ pub mod pallet {
             ensure!(!exist, Error::<T>::DuplicateProposal);
             ensure!(
                 <Proposals<T>>::try_append(proposal_hash).is_ok(),
-                Error::<T>::WrongProposalLength
+                Error::<T>::TooManyProposals
             );
 
             let end = duration + frame_system::Pallet::<T>::block_number();
@@ -298,9 +331,12 @@ pub mod pallet {
             let proposal = Proposal {
                 title: *community_note,
                 proposer: signer.clone(),
-                ayes: Vec::new(),
-                nays: Vec::new(),
-                end,
+                ayes: 0,
+                nays: 0,
+                poll_end: end,
+                reveal_end: None,
+                votes: Vec::new(),
+                revealed: Vec::new(),
             };
 
             <ProposalData<T>>::insert(proposal_hash, proposal);
@@ -313,72 +349,56 @@ pub mod pallet {
         }
 
         #[pallet::call_index(2)]
-        #[pallet::weight(T::WeightInfo::vote())]
-        pub fn vote(origin: OriginFor<T>, proposal: T::Hash, vote: Vote) -> DispatchResult {
+        #[pallet::weight(T::WeightInfo::close_vote())]
+        pub fn close_vote(origin: OriginFor<T>, proposal: T::Hash) -> DispatchResult {
             let signer = ensure_signed(origin)?;
+
             // check if signer is a member already
             ensure!(Self::is_member(&signer), Error::<T>::NotMember);
-            let result = Self::already_voted_and_exist(&signer, &proposal);
-            ensure!(result.is_some(), Error::<T>::ProposalMissing);
-            let voted = result.unwrap();
-            ensure!(!voted, Error::<T>::DuplicateVote);
+
             let proposal_data = <ProposalData<T>>::get(&proposal);
             ensure!(proposal_data.is_some(), Error::<T>::ProposalMissing);
+
             let mut proposal_data = proposal_data.unwrap();
-            match vote {
-                Vote::Yes => {
-                    proposal_data.ayes.push(signer.clone());
-                }
-                Vote::No => {
-                    proposal_data.nays.push(signer.clone());
-                }
-            };
-            <ProposalData<T>>::set(proposal, Some(proposal_data));
-            Self::deposit_event(Event::<T>::Voted {
-                account: signer,
-                proposal_hash: proposal,
-            });
+            ensure!(
+                proposal_data.reveal_end.is_none(),
+                Error::<T>::VoteAlreadyEnded
+            );
+
+            let current_block = frame_system::Pallet::<T>::block_number();
+            ensure!(
+                proposal_data.poll_end <= current_block,
+                Error::<T>::TooEarly
+            );
+
+            let current_block = frame_system::Pallet::<T>::block_number();
+            proposal_data.reveal_end = Some(current_block + T::RevealLength::get());
+
+            <ProposalData<T>>::insert(proposal, proposal_data);
 
             Ok(())
         }
 
         #[pallet::call_index(3)]
-        #[pallet::weight(T::WeightInfo::commit_vote())]
-        pub fn commit_vote(
-            origin: OriginFor<T>,
-            proposal: T::Hash,
-            data: T::Signature,
-            // number: VoteToken,
-            salt: u32,
-        ) -> DispatchResult {
+        #[pallet::weight(T::WeightInfo::close_reveal())]
+        pub fn close_reveal(origin: OriginFor<T>, proposal: T::Hash) -> DispatchResult {
             let signer = ensure_signed(origin)?;
 
             //check if signer is a member already | tested
             ensure!(Self::is_member(&signer), Error::<T>::NotMember);
 
-            let committed = Self::already_committed_and_exist(&signer, &proposal);
-            ensure!(!committed, Error::<T>::DuplicateVote);
-
             let proposal_data = <ProposalData<T>>::get(&proposal);
             ensure!(proposal_data.is_some(), Error::<T>::ProposalMissing);
 
             let proposal_data = proposal_data.unwrap();
+            ensure!(
+                proposal_data.reveal_end.is_some(),
+                Error::<T>::RevealNotStarted
+            );
 
+            let reveal_end = proposal_data.reveal_end.unwrap();
             let current_block = frame_system::Pallet::<T>::block_number();
-
-            ensure!(current_block < proposal_data.end, Error::<T>::ProposalEnded);
-
-            let commit = Commit {
-                signature: data,
-                salt,
-            };
-
-            <Commits<T>>::insert(proposal, signer.clone(), commit);
-
-            Self::deposit_event(Event::<T>::Committed {
-                account: signer,
-                proposal_hash: proposal,
-            });
+            ensure!(reveal_end <= current_block, Error::<T>::TooEarly);
 
             Ok(())
         }
@@ -391,31 +411,92 @@ pub mod pallet {
             //check if signer is a member already | tested
             ensure!(Self::is_member(&signer), Error::<T>::NotMember);
 
-            let result = Self::already_voted_and_exist(&signer, &proposal);
-            ensure!(result.is_some(), Error::<T>::ProposalMissing);
-
-            let voted = result.unwrap();
-            ensure!(!voted, Error::<T>::DuplicateVote);
-
-            // verify the signature
+            //verify the signature
             let commit = <Commits<T>>::get(&proposal, &signer);
             ensure!(commit.is_some(), Error::<T>::NoCommit);
-
             let commit = commit.unwrap();
+
             let data = (vote.clone(), commit.salt).encode();
             let valid_sign = commit.signature.verify(data.as_slice(), &signer);
             ensure!(valid_sign, Error::<T>::SignatureInvalid);
 
             let proposal_data = <ProposalData<T>>::get(&proposal);
             ensure!(proposal_data.is_some(), Error::<T>::ProposalMissing);
-
             let mut proposal_data = proposal_data.unwrap();
-            match vote {
-                Vote::Yes => proposal_data.ayes.push(signer.clone()),
-                Vote::No => proposal_data.nays.push(signer.clone()),
+
+            let reveal_exist = proposal_data.reveal_end;
+            if let Some(reveal_end) = reveal_exist {
+                let current_block = frame_system::Pallet::<T>::block_number();
+                ensure!(reveal_end > current_block, Error::<T>::RevealEnded);
             }
+
+            let voted = Self::already_voted(&signer, &proposal_data);
+            ensure!(!voted, Error::<T>::DuplicateVote);
+
+            match vote {
+                Vote::Yes => proposal_data.ayes += commit.number as u32,
+                Vote::No => proposal_data.nays += commit.number as u32,
+            }
+
+            proposal_data.votes.push((signer.clone(), commit.number));
+            proposal_data.revealed.push(signer.clone());
+
             <ProposalData<T>>::insert(proposal, proposal_data);
+
             Self::deposit_event(Event::<T>::Voted {
+                account: signer,
+                proposal_hash: proposal,
+            });
+
+            Ok(())
+        }
+
+        #[pallet::call_index(5)]
+        #[pallet::weight(T::WeightInfo::commit_vote())]
+        pub fn commit_vote(
+            origin: OriginFor<T>,
+            proposal: T::Hash,
+            data: T::Signature,
+            number: VoteToken,
+            salt: u32,
+        ) -> DispatchResult {
+            let signer = ensure_signed(origin)?;
+            //check if signer is a member already | tested
+            ensure!(Self::is_member(&signer), Error::<T>::NotMember);
+
+            if number == 0 {
+                ensure!(false, Error::<T>::InvalidArgument);
+            }
+
+            let committed = Self::already_committed_and_exist(&signer, &proposal);
+            ensure!(!committed, Error::<T>::DuplicateVote);
+
+            let proposal_data = <ProposalData<T>>::get(&proposal);
+            ensure!(proposal_data.is_some(), Error::<T>::ProposalMissing);
+            let proposal_data = proposal_data.unwrap();
+
+            let current_block = frame_system::Pallet::<T>::block_number();
+            ensure!(
+                current_block < proposal_data.poll_end,
+                Error::<T>::VoteEnded
+            );
+
+            let mut tokens_to_take: u8 = number;
+            if number > 1 {
+                tokens_to_take = number.pow(2);
+            }
+
+            let enough_tokens = Self::decrease_votes(&signer, tokens_to_take);
+            ensure!(enough_tokens, Error::<T>::NotEnoughVotingTokens);
+
+            let commit = Commit {
+                signature: data,
+                salt,
+                number,
+            };
+            <Commits<T>>::insert(proposal, signer.clone(), commit);
+
+            Self::deposit_event(Event::<T>::Committed {
                 account: signer,
                 proposal_hash: proposal,
             });
@@ -433,16 +514,38 @@ impl<T: Config> Pallet<T> {
         (proposals.contains(proposal), proposals)
     }
 
-    pub fn already_voted_and_exist(who: &T::AccountId, proposal_hash: &T::Hash) -> Option<bool> {
-        let result = <ProposalData<T>>::get(proposal_hash);
-        if let Some(proposal) = result {
-            Some(proposal.ayes.contains(who) || proposal.nays.contains(who))
-        } else {
-            None
-        }
+    pub fn already_voted(
+        who: &T::AccountId,
+        proposal: &types::Proposal<T::AccountId, BlockNumberFor<T>>,
+    ) -> bool {
+        proposal.revealed.contains(who)
     }
 
     pub fn already_committed_and_exist(who: &T::AccountId, proposal_hash: &T::Hash) -> bool {
         <Commits<T>>::get(proposal_hash, who).is_some()
+    }
+
+    /// Deposit voting tokens to the account and make sure it does not exceed
+    /// the limit
+    pub fn deposit_votes(who: &T::AccountId, tokens: u8) {
+        <AccountVotes<T>>::mutate(who, |balance| {
+            *balance += tokens;
+            if *balance > 100u8 {
+                *balance = 100u8;
+            }
+        });
+    }
+
+    /// tries to decrease the voting tokens of a specific account by specified
+    /// amount. Returns false if account does not have enough voting tokens
+    pub fn decrease_votes(who: &T::AccountId, amount: u8) -> bool {
+        <AccountVotes<T>>::try_mutate(who, |balance| {
+            if *balance < amount {
+                return Err(());
+            }
+            *balance -= amount;
+            Ok(())
+        })
+        .is_ok()
     }
 }

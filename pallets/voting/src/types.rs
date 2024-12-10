@@ -17,11 +17,23 @@ pub enum Data {
 
 #[derive(Clone, Eq, PartialEq, RuntimeDebug, Encode, Decode, TypeInfo)]
 pub struct Proposal<AccountId, BlockNumberFor> {
+    /// The title of community note.
     pub title: Data,
+    /// Who proposed
     pub proposer: AccountId,
-    pub ayes: Vec<AccountId>,
-    pub nays: Vec<AccountId>,
-    pub end: BlockNumberFor,
+    /// Total votes for proposal to pass
+    pub ayes: u32,
+    /// Total votes for proposal to get rejected
+    pub nays: u32,
+    /// The hard end of voting phase
+    pub poll_end: BlockNumberFor,
+    /// The hard end of reveal phase
+    pub reveal_end: Option<BlockNumberFor>,
+    /// The number of votes each voter gave
+    pub votes: Vec<(AccountId, u8)>,
+    /// Users who revealed their choices.
+    /// Allows to verify who did not reveal on time
+    pub revealed: Vec<AccountId>,
 }
 
 #[derive(Clone, Eq, PartialEq, RuntimeDebug, Encode, Decode, TypeInfo)]
@@ -32,6 +44,11 @@ pub enum Vote {
 
 #[derive(Clone, Eq, PartialEq, RuntimeDebug, Encode, Decode, TypeInfo)]
 pub struct Commit<Signature> {
+    /// The signed choice of a voter
     pub signature: Signature,
+    /// The number of votes the voter gives to their choice.
+    /// Must be exposed and unencrypted to allow double spend of votes
+    pub number: u8,
+    /// Salt which comes with the choice to ensure the security
     pub salt: u32,
 }

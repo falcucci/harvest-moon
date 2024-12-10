@@ -124,6 +124,9 @@ impl pallet_voting::Config for Test {
     type MaxProposals = MaxProposals;
     type Public = <Signature as sp_runtime::traits::Verify>::Signer;
     type Signature = MultiSignature;
+    type RevealLength = RevealLength;
+    type MinLength = MinLength;
+    type MaxVotingTokens = MaxTokens;
 }
 
 pub fn get_charlie() -> AccountId { get_account_id_from_seed::<sr25519::Public>("Charlie") }
