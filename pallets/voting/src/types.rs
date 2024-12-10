@@ -7,6 +7,8 @@ use frame_support::BoundedVec;
 use scale_info::prelude::vec::Vec;
 use scale_info::TypeInfo;
 
+pub type VoteToken = u8;
+
 #[derive(Clone, Eq, PartialEq, RuntimeDebug, Encode, Decode, MaxEncodedLen, TypeInfo)]
 pub enum Data {
     /// The data is stored directly.

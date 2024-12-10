@@ -43,13 +43,13 @@ pub mod pallet {
     use frame_system::pallet_prelude::*;
     use scale_info::prelude::boxed::Box;
     use scale_info::prelude::vec::Vec;
-    use sp_core::sr25519::Signature;
     use sp_runtime::traits::IdentifyAccount;
     use sp_runtime::traits::Verify;
     use types::Commit;
     use types::Data;
     use types::Proposal;
     use types::Vote;
+    use types::VoteToken;
 
     use super::*;
 
@@ -348,6 +348,7 @@ pub mod pallet {
             origin: OriginFor<T>,
             proposal: T::Hash,
             data: T::Signature,
+            // number: VoteToken,
             salt: u32,
         ) -> DispatchResult {
             let signer = ensure_signed(origin)?;
@@ -375,6 +376,46 @@ pub mod pallet {
             <Commits<T>>::insert(proposal, signer.clone(), commit);
 
             Self::deposit_event(Event::<T>::Committed {
+                account: signer,
+                proposal_hash: proposal,
+            });
+
+            Ok(())
+        }
+
+        #[pallet::call_index(4)]
+        #[pallet::weight(T::WeightInfo::reveal_vote())]
+        pub fn reveal_vote(origin: OriginFor<T>, proposal: T::Hash, vote: Vote) -> DispatchResult {
+            let signer = ensure_signed(origin)?;
+
+            //check if signer is a member already | tested
+            ensure!(Self::is_member(&signer), Error::<T>::NotMember);
+
+            let result = Self::already_voted_and_exist(&signer, &proposal);
+            ensure!(result.is_some(), Error::<T>::ProposalMissing);
+
+            let voted = result.unwrap();
+            ensure!(!voted, Error::<T>::DuplicateVote);
+
+            // verify the signature
+            let commit = <Commits<T>>::get(&proposal, &signer);
+            ensure!(commit.is_some(), Error::<T>::NoCommit);
+
+            let commit = commit.unwrap();
+            let data = (vote.clone(), commit.salt).encode();
+            let valid_sign = commit.signature.verify(data.as_slice(), &signer);
+            ensure!(valid_sign, Error::<T>::SignatureInvalid);
+
+            let proposal_data = <ProposalData<T>>::get(&proposal);
+            ensure!(proposal_data.is_some(), Error::<T>::ProposalMissing);
+
+            let mut proposal_data = proposal_data.unwrap();
+            match vote {
+                Vote::Yes => proposal_data.ayes.push(signer.clone()),
+                Vote::No => proposal_data.nays.push(signer.clone()),
+            }
+            <ProposalData<T>>::insert(proposal, proposal_data);
+            Self::deposit_event(Event::<T>::Voted {
                 account: signer,
                 proposal_hash: proposal,
             });
