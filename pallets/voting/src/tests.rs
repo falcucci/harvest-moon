@@ -5,7 +5,15 @@ use pallet_identity::legacy::IdentityInfo;
 use sp_core::sr25519;
 use sp_runtime::BoundedVec;
 
-use crate::mock::*;
+use crate::mock::generate;
+use crate::mock::get_alice;
+use crate::mock::get_bob;
+use crate::mock::new_test_ext;
+use crate::mock::Identity;
+use crate::mock::MaxAdditionalFields;
+use crate::mock::RuntimeOrigin;
+use crate::mock::Test;
+use crate::mock::VotingModule;
 use crate::types::Data;
 use crate::types::Vote;
 use crate::Error;
