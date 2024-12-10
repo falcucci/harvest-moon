@@ -250,7 +250,7 @@ pub mod pallet {
         #[pallet::weight(T::WeightInfo::create_proposal())]
         pub fn create_proposal(
             origin: OriginFor<T>,
-            proposal_text: Box<Data>,
+            community_note: Box<Data>,
             end: BlockNumberFor<T>,
         ) -> DispatchResult {
             let signer = ensure_signed(origin)?;
@@ -264,7 +264,7 @@ pub mod pallet {
                 }
             }
 
-            let proposal_hash = T::Hashing::hash_of(&proposal_text);
+            let proposal_hash = T::Hashing::hash_of(&community_note);
             let (exist, _) = Self::proposal_exist(&proposal_hash);
             ensure!(!exist, Error::<T>::DuplicateProposal);
             ensure!(
@@ -272,7 +272,7 @@ pub mod pallet {
                 Error::<T>::WrongProposalLength
             );
             let proposal = Proposal {
-                title: *proposal_text,
+                title: *community_note,
                 proposer: signer,
                 ayes: Vec::new(),
                 nays: Vec::new(),
