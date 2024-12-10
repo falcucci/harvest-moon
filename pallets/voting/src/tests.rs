@@ -109,7 +109,7 @@ fn submit_commits() {
         let proposal_hash = results[0];
 
         let sig = sp_runtime::MultiSignature::Sr25519(sig);
-        let result = VotingModule::commit_vote(origin, proposal_hash, sig, 8, salt);
+        let result = VotingModule::commit_vote(origin, proposal_hash, sig, salt);
         assert_ok!(result);
     });
 }

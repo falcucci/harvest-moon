@@ -122,6 +122,8 @@ impl pallet_voting::Config for Test {
     type Currency = Balances;
     type BasicDeposit = EntryFee;
     type MaxProposals = MaxProposals;
+    type Public = <Signature as sp_runtime::traits::Verify>::Signer;
+    type Signature = MultiSignature;
 }
 
 pub fn get_charlie() -> AccountId { get_account_id_from_seed::<sr25519::Public>("Charlie") }
