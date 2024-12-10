@@ -28,6 +28,7 @@ use frame_support::weights::Weight;
 /// Weight functions needed for pallet_voting.
 pub trait WeightInfo {
     fn join_committee() -> Weight;
+    fn create_proposal() -> Weight;
     fn cause_error() -> Weight;
 }
 
@@ -42,6 +43,10 @@ impl<T: frame_system::Config> WeightInfo for SubstrateWeight<T> {
         //  Measured:  `0`
         //  Estimated: `0`
         // Minimum execution time: 8_000_000 picoseconds.
+        Weight::from_parts(9_000_000, 0).saturating_add(T::DbWeight::get().writes(1_u64))
+    }
+
+    fn create_proposal() -> Weight {
         Weight::from_parts(9_000_000, 0).saturating_add(T::DbWeight::get().writes(1_u64))
     }
 
@@ -79,6 +84,14 @@ impl WeightInfo for () {
         //  Measured:  `0`
         //  Estimated: `0`
         // Minimum execution time: 8_000_000 picoseconds.
+        Weight::from_parts(9_000_000, 0).saturating_add(RocksDbWeight::get().writes(1_u64))
+    }
+
+    fn create_proposal() -> Weight {
+        // Proof Size summary in bytes:
+        //  Measured:  `0`
+        //  Estimated: `0`
+        // Minimum execution time: 9_000_000 picoseconds.
         Weight::from_parts(9_000_000, 0).saturating_add(RocksDbWeight::get().writes(1_u64))
     }
 }

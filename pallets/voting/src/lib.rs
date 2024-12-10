@@ -24,6 +24,7 @@ pub mod types;
 #[cfg(feature = "runtime-benchmarks")]
 mod benchmarking;
 pub mod weights;
+use frame_support::BoundedVec;
 pub use weights::*;
 
 // All pallet logic is defined in its own module and must be annotated by the
@@ -35,11 +36,14 @@ pub mod pallet {
     use frame_support::pallet_prelude::CountedStorageMap;
     use frame_support::pallet_prelude::ValueQuery;
     use frame_support::pallet_prelude::*;
+    use frame_support::sp_runtime::traits::Hash;
     use frame_support::traits::Currency;
     use frame_support::traits::ReservableCurrency;
     use frame_support::Blake2_128Concat;
     use frame_system::pallet_prelude::*;
+    use scale_info::prelude::boxed::Box;
     use scale_info::prelude::vec::Vec;
+    use types::Data;
     use types::Proposal;
 
     use super::*;
@@ -50,6 +54,9 @@ pub mod pallet {
 
     type BalanceOf<T> =
         <<T as Config>::Currency as Currency<<T as frame_system::Config>::AccountId>>::Balance;
+
+    type ProposalOf<T> =
+        Box<Proposal<<T as frame_system::Config>::AccountId, <T as frame_system::Config>::Block>>;
 
     pub trait IdentityProvider<AccountId> {
         fn check_existence(account: &AccountId) -> bool;
@@ -85,7 +92,11 @@ pub mod pallet {
 
     #[pallet::storage]
     pub type Proposals<T: Config> =
-        StorageValue<_, Vec<Proposal<T::AccountId, BlockNumberFor<T>>>, ValueQuery>;
+        StorageValue<_, BoundedVec<T::Hash, T::MaxProposals>, ValueQuery>;
+
+    #[pallet::storage]
+    pub type ProposalData<T: Config> =
+        StorageMap<_, Identity, T::Hash, Proposal<T::AccountId, BlockNumberFor<T>>>;
 
     #[pallet::pallet]
     #[pallet::without_storage_info]
@@ -234,9 +245,50 @@ pub mod pallet {
 
             Ok(())
         }
+
+        #[pallet::call_index(1)]
+        #[pallet::weight(T::WeightInfo::create_proposal())]
+        pub fn create_proposal(
+            origin: OriginFor<T>,
+            proposal_text: Box<Data>,
+            end: BlockNumberFor<T>,
+        ) -> DispatchResult {
+            let signer = ensure_signed(origin)?;
+
+            // check if signer is a member already
+            ensure!(Self::is_member(&signer), Error::<T>::NotMember);
+            let length_res = <Proposals<T>>::decode_len();
+            if let Some(length) = length_res {
+                if length == T::MaxProposals::get() as usize {
+                    ensure!(false, Error::<T>::TooManyProposals);
+                }
+            }
+
+            let proposal_hash = T::Hashing::hash_of(&proposal_text);
+            let (exist, _) = Self::proposal_exist(&proposal_hash);
+            ensure!(!exist, Error::<T>::DuplicateProposal);
+            ensure!(
+                <Proposals<T>>::try_append(proposal_hash).is_ok(),
+                Error::<T>::WrongProposalLength
+            );
+            let proposal = Proposal {
+                title: *proposal_text,
+                proposer: signer,
+                ayes: Vec::new(),
+                nays: Vec::new(),
+                end,
+            };
+            <ProposalData<T>>::insert(proposal_hash, proposal);
+
+            Ok(())
+        }
     }
 }
 
 impl<T: Config> Pallet<T> {
     pub fn is_member(account: &T::AccountId) -> bool { Members::<T>::contains_key(account) }
+    pub fn proposal_exist(proposal: &T::Hash) -> (bool, BoundedVec<T::Hash, T::MaxProposals>) {
+        let proposals = <Proposals<T>>::get();
+        (proposals.contains(proposal), proposals)
+    }
 }
