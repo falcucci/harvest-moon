@@ -46,12 +46,26 @@ use sp_runtime::traits::One;
 use sp_runtime::Perbill;
 use sp_version::RuntimeVersion;
 
-// Local module imports
-use super::{
-    AccountId, Aura, Balance, Balances, Block, BlockNumber, Hash, Nonce, PalletInfo, Runtime,
-    RuntimeCall, RuntimeEvent, RuntimeFreezeReason, RuntimeHoldReason, RuntimeOrigin, RuntimeTask,
-    System, EXISTENTIAL_DEPOSIT, SLOT_DURATION, VERSION,
-};
+use super::AccountId;
+use super::Aura;
+use super::Balance;
+use super::Balances;
+use super::Block;
+use super::BlockNumber;
+use super::Hash;
+use super::Nonce;
+use super::PalletInfo;
+use super::Runtime;
+use super::RuntimeCall;
+use super::RuntimeEvent;
+use super::RuntimeFreezeReason;
+use super::RuntimeHoldReason;
+use super::RuntimeOrigin;
+use super::RuntimeTask;
+use super::System;
+use super::EXISTENTIAL_DEPOSIT;
+use super::SLOT_DURATION;
+use super::VERSION;
 use crate::Signature;
 use crate::DAYS;
 
