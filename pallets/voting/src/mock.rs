@@ -1,3 +1,4 @@
+use codec::Encode;
 use frame_support::derive_impl;
 use frame_support::parameter_types;
 use frame_support::PalletId;
@@ -13,6 +14,7 @@ use sp_runtime::BuildStorage;
 use sp_runtime::MultiSignature;
 
 use crate as pallet_voting;
+use crate::types::Vote;
 
 type Block = frame_system::mocking::MockBlock<Test>;
 
@@ -31,6 +33,9 @@ pub type BlockNumber = u64;
 
 /// Balance of an account.
 pub type Balance = u128;
+
+/// should be random, but we leave it const for simplicity
+const SALT: u32 = 10u32;
 
 parameter_types! {
     pub const EntryFee: Balance = 30_000 * UNIT;
@@ -136,6 +141,14 @@ pub fn new_test_ext() -> sp_io::TestExternalities {
     .assimilate_storage(&mut t)
     .unwrap();
     t.into()
+}
+
+pub fn generate(account: &str, vote: Vote) -> (sp_core::sr25519::Signature, u32) {
+    let pair: sp_core::sr25519::Pair = Pair::from_string(account, None).unwrap();
+    let payload = (vote, SALT).encode();
+    let payload = payload.as_slice().to_owned();
+    let signed = pair.sign(&payload);
+    (signed, SALT)
 }
 
 /// Generate a crypto pair from seed.

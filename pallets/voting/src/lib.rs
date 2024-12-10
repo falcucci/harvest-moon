@@ -43,6 +43,10 @@ pub mod pallet {
     use frame_system::pallet_prelude::*;
     use scale_info::prelude::boxed::Box;
     use scale_info::prelude::vec::Vec;
+    use sp_core::sr25519::Signature;
+    use sp_runtime::traits::IdentifyAccount;
+    use sp_runtime::traits::Verify;
+    use types::Commit;
     use types::Data;
     use types::Proposal;
     use types::Vote;
@@ -82,6 +86,9 @@ pub mod pallet {
         /// Maximum number of proposals allowed to be active in parallel.
         type MaxProposals: Get<ProposalIndex>;
 
+        type Public: IdentifyAccount<AccountId = Self::AccountId>;
+        type Signature: Verify<Signer = Self::Public> + Member + Decode + Encode + TypeInfo;
+
         /// A type representing the weights required by the dispatchables of
         /// this pallet.
         type WeightInfo: WeightInfo;
@@ -98,6 +105,10 @@ pub mod pallet {
     #[pallet::storage]
     pub type ProposalData<T: Config> =
         StorageMap<_, Identity, T::Hash, Proposal<T::AccountId, BlockNumberFor<T>>>;
+
+    #[pallet::storage]
+    pub type Commits<T: Config> =
+        StorageDoubleMap<_, Identity, T::Hash, Identity, T::AccountId, Commit<T::Signature>>;
 
     #[pallet::pallet]
     #[pallet::without_storage_info]
@@ -128,6 +139,13 @@ pub mod pallet {
             proposal_hash: T::Hash,
         },
         Voted {
+            account: T::AccountId,
+            proposal_hash: T::Hash,
+        },
+        /// A motion (given hash) has been committed on by given account,
+        /// leaving a tally (yes votes and no votes given respectively
+        /// as `MemberCount`).
+        Committed {
             account: T::AccountId,
             proposal_hash: T::Hash,
         },
@@ -175,6 +193,8 @@ pub mod pallet {
         ProposalMissing,
         /// Mismatched index
         WrongIndex,
+        /// Invalid Argument was supplied
+        InvalidArgument,
         /// Duplicate vote ignored
         DuplicateVote,
         /// Members are already initialized!
@@ -187,8 +207,12 @@ pub mod pallet {
         WrongProposalLength,
         /// Not enough funds to join the voting council
         NotEnoughFunds,
-        /// The value retrieved was `None` as no value was previously set.
-        NoneValue,
+        /// Proposal Ended
+        ProposalEnded,
+        /// No commit has been submitted
+        NoCommit,
+        /// Could not verify signature of a commit
+        SignatureInvalid,
     }
 
     #[pallet::hooks]
@@ -248,7 +272,7 @@ pub mod pallet {
         pub fn create_proposal(
             origin: OriginFor<T>,
             community_note: Box<Data>,
-            end: BlockNumberFor<T>,
+            duration: BlockNumberFor<T>,
         ) -> DispatchResult {
             let signer = ensure_signed(origin)?;
 
@@ -268,6 +292,8 @@ pub mod pallet {
                 <Proposals<T>>::try_append(proposal_hash).is_ok(),
                 Error::<T>::WrongProposalLength
             );
+
+            let end = duration + frame_system::Pallet::<T>::block_number();
 
             let proposal = Proposal {
                 title: *community_note,
@@ -315,6 +341,46 @@ pub mod pallet {
 
             Ok(())
         }
+
+        #[pallet::call_index(3)]
+        #[pallet::weight(T::WeightInfo::commit_vote())]
+        pub fn commit_vote(
+            origin: OriginFor<T>,
+            proposal: T::Hash,
+            data: T::Signature,
+            salt: u32,
+        ) -> DispatchResult {
+            let signer = ensure_signed(origin)?;
+
+            //check if signer is a member already | tested
+            ensure!(Self::is_member(&signer), Error::<T>::NotMember);
+
+            let committed = Self::already_committed_and_exist(&signer, &proposal);
+            ensure!(!committed, Error::<T>::DuplicateVote);
+
+            let proposal_data = <ProposalData<T>>::get(&proposal);
+            ensure!(proposal_data.is_some(), Error::<T>::ProposalMissing);
+
+            let proposal_data = proposal_data.unwrap();
+
+            let current_block = frame_system::Pallet::<T>::block_number();
+
+            ensure!(current_block < proposal_data.end, Error::<T>::ProposalEnded);
+
+            let commit = Commit {
+                signature: data,
+                salt,
+            };
+
+            <Commits<T>>::insert(proposal, signer.clone(), commit);
+
+            Self::deposit_event(Event::<T>::Committed {
+                account: signer,
+                proposal_hash: proposal,
+            });
+
+            Ok(())
+        }
     }
 }
 
@@ -333,5 +399,9 @@ impl<T: Config> Pallet<T> {
         } else {
             None
         }
+    }
+
+    pub fn already_committed_and_exist(who: &T::AccountId, proposal_hash: &T::Hash) -> bool {
+        <Commits<T>>::get(proposal_hash, who).is_some()
     }
 }

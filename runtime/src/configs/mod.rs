@@ -43,6 +43,7 @@ use pallet_transaction_payment::FungibleAdapter;
 use pallet_transaction_payment::Multiplier;
 use sp_consensus_aura::sr25519::AuthorityId as AuraId;
 use sp_runtime::traits::One;
+use sp_runtime::MultiSignature;
 use sp_runtime::Perbill;
 use sp_version::RuntimeVersion;
 
@@ -258,4 +259,6 @@ impl pallet_voting::Config for Runtime {
     type Currency = Balances;
     type BasicDeposit = EntryFee;
     type MaxProposals = MaxProposals;
+    type Public = <Signature as sp_runtime::traits::Verify>::Signer;
+    type Signature = MultiSignature;
 }

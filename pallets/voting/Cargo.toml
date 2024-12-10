@@ -22,11 +22,11 @@ scale-info = { features = [
 frame-benchmarking = { optional = true, workspace = true }
 frame-support.workspace = true
 frame-system.workspace = true
+sp-core = { default-features = false, workspace = true }
+sp-runtime = { default-features = false, workspace = true }
 
 [dev-dependencies]
-sp-core = { default-features = true, workspace = true }
 sp-io = { default-features = true, workspace = true }
-sp-runtime = { default-features = true, workspace = true }
 sp-version = { default-features = true, workspace = true }
 pallet-balances.workspace = true
 pallet-identity.workspace = true
@@ -40,6 +40,7 @@ std = [
 	"frame-support/std",
 	"frame-system/std",
 	"scale-info/std",
+  "sp-core/std",
 ]
 runtime-benchmarks = [
 	"frame-benchmarking/runtime-benchmarks",

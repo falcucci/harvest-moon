@@ -27,3 +27,9 @@ pub enum Vote {
     Yes,
     No,
 }
+
+#[derive(Clone, Eq, PartialEq, RuntimeDebug, Encode, Decode, TypeInfo)]
+pub struct Commit<Signature> {
+    pub signature: Signature,
+    pub salt: u32,
+}

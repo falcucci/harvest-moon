@@ -7,6 +7,7 @@ use sp_runtime::BoundedVec;
 
 use crate::mock::*;
 use crate::types::Data;
+use crate::types::Vote;
 use crate::Error;
 use crate::Event;
 use crate::Proposals;
@@ -85,6 +86,31 @@ fn no_proposal_duplicates() {
             VotingModule::create_proposal(origin, Box::new(Data::Raw(BoundedVec::default())), 100);
 
         assert_noop!(result, Error::<Test>::DuplicateProposal);
+    });
+}
+
+#[test]
+fn submit_commits() {
+    new_test_ext().execute_with(|| {
+        let alice = get_alice();
+        let origin = RuntimeOrigin::signed(alice);
+        let _ = Identity::set_identity(origin.clone(), Box::new(data()));
+
+        let _ = VotingModule::join_committee(origin.clone());
+
+        let _ = VotingModule::create_proposal(
+            origin.clone(),
+            Box::new(Data::Raw(BoundedVec::default())),
+            100,
+        );
+
+        let (sig, salt) = generate("//Alice", Vote::Yes);
+        let results = <Proposals<Test>>::get();
+        let proposal_hash = results[0];
+
+        let sig = sp_runtime::MultiSignature::Sr25519(sig);
+        let result = VotingModule::commit_vote(origin, proposal_hash, sig, 8, salt);
+        assert_ok!(result);
     });
 }
 
