@@ -6,7 +6,6 @@ use sp_core::sr25519;
 use sp_core::ConstU128;
 use sp_core::Pair;
 use sp_core::Public;
-use sp_runtime::traits::Convert;
 use sp_runtime::traits::IdentifyAccount;
 use sp_runtime::traits::IdentityLookup;
 use sp_runtime::traits::Verify;

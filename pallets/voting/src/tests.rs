@@ -1,7 +1,6 @@
 use frame_support::assert_noop;
 use frame_support::assert_ok;
 use pallet_identity::legacy::IdentityInfo;
-use sp_core::sr25519;
 use sp_runtime::BoundedVec;
 
 use crate::mock::generate;
@@ -19,7 +18,6 @@ use crate::mock::VotingModule;
 use crate::types::Data;
 use crate::types::Vote;
 use crate::Error;
-use crate::Event;
 use crate::Members;
 use crate::Proposals;
 
@@ -125,6 +123,7 @@ fn submit_commits() {
     });
 }
 
+#[test]
 fn cannot_submit_votes_more_than_have() {
     new_test_ext().execute_with(|| {
         let alice = get_alice();
