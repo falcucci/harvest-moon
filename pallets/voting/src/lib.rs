@@ -324,8 +324,11 @@ pub mod pallet {
 
             T::Currency::reserve(&signer, T::BasicDeposit::get())?;
 
-            //deposit 100 voting tokens to the voter
-            Self::deposit_votes(&signer, 100);
+            // deposit 100 voting tokens to the voter
+            Self::deposit_votes(&signer, T::MaxVotingTokens::get());
+
+            // reserve the fixed amount specified in the config
+            Self::set_reserved_balance(&signer, T::BasicDeposit::get());
 
             Self::deposit_event(Event::<T>::Joined(signer));
 
@@ -336,18 +339,20 @@ pub mod pallet {
         #[pallet::weight(T::WeightInfo::leave_committee())]
         pub fn leave_committee(origin: OriginFor<T>) -> DispatchResult {
             let signer = ensure_signed(origin)?;
-            //check if signer has identity | tested
+            // check if signer has identity
             ensure!(
                 T::IdentityProvider::check_existence(&signer),
                 Error::<T>::NoIdentity
             );
+
             let active_votes = <Commits<T>>::iter_prefix_values(signer.clone()).count();
             ensure!(active_votes == 0, Error::<T>::InMotion);
+
             // find the exact amount of reserved funds that need to be returned to the free
             // balance
             let reserved_balance = <Members<T>>::get(signer.clone()).reserved_balance;
             let balance = T::Currency::unreserve(&signer, reserved_balance);
-            //remove entries
+            // remove entries
             <Members<T>>::remove(signer.clone());
             Self::deposit_event(Event::<T>::Left {
                 account: signer,
@@ -510,6 +515,7 @@ pub mod pallet {
                         .map(|entry| entry.0.clone())
                         .collect();
                     Self::reward_voting_side(winners, &pot_address, amount)?;
+                    Self::deposit_event(Event::<T>::Disapproved(proposal));
                 }
                 Ordering::Equal => {
                     let losers: Vec<T::AccountId> =
@@ -567,7 +573,7 @@ pub mod pallet {
                     let _ = Self::slash_voting_side(vec![signer.clone()], &pot_address)?;
                     let amount = u8::pow(commit.number, 2);
                     Self::deposit_votes(&signer, amount);
-                    //probably need to refund, but let it be additional punishment
+                    // probably need to refund, but let it be additional punishment
                     return Ok(());
                 }
             }
@@ -748,7 +754,7 @@ impl<T: Config> Pallet<T> {
                 frame_support::traits::BalanceStatus::Reserved,
             )?;
             let actual_share = share.saturating_sub(lost);
-            //increase the reserved funds under the account
+            // increase the reserved funds under the account
             <Members<T>>::mutate(&voter, |balance| {
                 balance.reserved_balance = balance.reserved_balance.saturating_add(actual_share);
             });

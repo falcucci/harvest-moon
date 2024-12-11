@@ -250,8 +250,8 @@ pub const UNIT: u128 = 1000000000000;
 parameter_types! {
     pub const EntryFee: Balance = 30_000 * UNIT;
     pub const MaxProposals: u32 = 10u32;
-    pub const RevealLength: BlockNumber = 50u32;
-    pub const MinLength: BlockNumber = 50u32;
+    pub const RevealLength: BlockNumber = 7u32;
+    pub const MinLength: BlockNumber = 15u32;
     pub const MaxTokens: u8 = 100u8;
     pub const VotingPalletId: PalletId = PalletId(*b"p/v8t1ng");
 }
