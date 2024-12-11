@@ -90,5 +90,12 @@ sequenceDiagram
     end
 ```
 
+---
+
+**commit-reveal**: voting takes place in 2 separate chronologic time periods. this prevents the voting process itself from influencing vote results
+
+- **commit stage**: time period where a user can submit a secret token-weighted vote, locking those tokens. committed votes are concealed using a [**salted hash**](https://en.wikipedia.org/wiki/Salt_%28cryptography%29) of the user's vote option and a random number;
+- **reveal stage**: time period where a user can unlock their secret vote, confirming the vote's token-weight and option;
+
 [^1]: In communities where the majority of members share a similar political leaning, the Community Notes feature can function in the sense as a tool to highlight strong disagreements, such as debates over leader's status or whether certain policies align with fiscal conservative values. This could result in a spectrum of beliefs and potentially lead to "corrections" that bring you closer to the truth. However, this process might often resemble finding a middle ground between empirical evidence and unfounded claims, which doesn't necessarily lead to factual accuracy. Instead, it might simply label dissenting views as socially unacceptable, rather than providing genuine fact-checking ratings.
 [^2]: The issue is that without the general public or at least proportional representation of all its demographics, you don't necessarily get closer to the truth; you simply approach community ideological consensus. This utility is most effective at consolidating viewpoints into those widely accepted by the majority, with any movement toward truth being more of a side effect.
