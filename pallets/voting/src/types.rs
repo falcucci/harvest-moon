@@ -36,6 +36,8 @@ pub struct Proposal<AccountId, BlockNumberFor, Balance> {
     pub revealed: Vec<AccountId>,
     /// The amount that was slashed and distributed
     pub payout: Balance,
+    /// Is proposal closed
+    pub closed: bool,
 }
 
 #[derive(Clone, Eq, PartialEq, RuntimeDebug, Encode, Decode, TypeInfo)]
@@ -53,4 +55,13 @@ pub struct Commit<Signature> {
     pub number: u8,
     /// Salt which comes with the choice to ensure the security
     pub salt: u32,
+}
+
+#[derive(Clone, Eq, PartialEq, RuntimeDebug, Encode, Decode, TypeInfo, Default)]
+pub struct VoterBalance<Balance> {
+    /// The number of votes the voter gives to their choice.
+    /// Must be exposed and unencrypted to allow double spend of votes
+    pub voting_tokens: VoteToken,
+    /// Salt which comes with the choice to ensure the security
+    pub reserved_balance: Balance,
 }

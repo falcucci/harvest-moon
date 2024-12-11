@@ -12,6 +12,7 @@ use crate::mock::new_test_ext;
 use crate::mock::Identity;
 use crate::mock::MaxAdditionalFields;
 use crate::mock::RuntimeOrigin;
+use crate::mock::System;
 use crate::mock::Test;
 use crate::mock::VotingModule;
 use crate::types::Data;
@@ -143,6 +144,33 @@ fn cannot_submit_votes_more_than_have() {
         let sig = sp_runtime::MultiSignature::Sr25519(sig);
         let result = VotingModule::commit_vote(origin, proposal_hash, sig, 11, salt);
         assert_noop!(result, Error::<Test>::NotEnoughVotingTokens);
+    });
+}
+
+#[test]
+fn cannot_commit_after_deadline() {
+    new_test_ext().execute_with(|| {
+        let alice = get_alice();
+        let origin = RuntimeOrigin::signed(alice);
+        let _ = Identity::set_identity(origin.clone(), Box::new(data()));
+
+        let _ = VotingModule::join_committee(origin.clone());
+
+        let _ = VotingModule::create_proposal(
+            origin.clone(),
+            Box::new(Data::Raw(BoundedVec::default())),
+            100,
+        );
+
+        System::set_block_number(System::block_number().saturating_add(105));
+
+        let (sig, salt) = generate("//Alice", Vote::Yes);
+        let results = <Proposals<Test>>::get();
+        let proposal_hash = results[0];
+
+        let sig = sp_runtime::MultiSignature::Sr25519(sig);
+        let result = VotingModule::commit_vote(origin, proposal_hash, sig, 5, salt);
+        assert_noop!(result, Error::<Test>::VoteEnded);
     });
 }
 

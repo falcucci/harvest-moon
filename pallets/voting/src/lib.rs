@@ -34,6 +34,7 @@ use sp_runtime::traits::AccountIdConversion;
 use sp_runtime::traits::CheckedDiv;
 use sp_runtime::traits::Get;
 use sp_runtime::DispatchError;
+use sp_runtime::Saturating;
 pub use weights::*;
 
 // All pallet logic is defined in its own module and must be annotated by the
@@ -63,6 +64,7 @@ pub mod pallet {
     use types::Proposal;
     use types::Vote;
     use types::VoteToken;
+    use types::VoterBalance;
 
     use super::*;
 
@@ -139,7 +141,7 @@ pub mod pallet {
 
     #[pallet::storage]
     pub type Members<T: Config> =
-        CountedStorageMap<_, Identity, T::AccountId, VoteToken, ValueQuery>;
+        CountedStorageMap<_, Identity, T::AccountId, VoterBalance<BalanceOf<T>>, ValueQuery>;
 
     #[pallet::pallet]
     #[pallet::without_storage_info]
@@ -161,6 +163,7 @@ pub mod pallet {
     #[pallet::generate_deposit(pub(super) fn deposit_event)]
     pub enum Event<T: Config> {
         Joined(T::AccountId),
+        /// Some identity left the voting committee
         Left {
             account: T::AccountId,
             cashout: BalanceOf<T>,
@@ -180,24 +183,21 @@ pub mod pallet {
             account: T::AccountId,
             proposal_hash: T::Hash,
         },
-        Approved {
-            proposal_hash: T::Hash,
-        },
-        Disapproved {
-            proposal_hash: T::Hash,
-        },
-        Executed {
-            proposal_hash: T::Hash,
-            result: DispatchResult,
-        },
-        MemerExecuted {
-            proposal_hash: T::Hash,
-            result: DispatchResult,
-        },
-        Closed {
+        /// The reveal phase was finished
+        ClosedCommit(T::Hash),
+        /// Proposal has been approved
+        Approved(T::Hash),
+        /// Proposal has nit been approved
+        Disapproved(T::Hash),
+        /// No consensus has been reached in motion
+        Tie(T::Hash),
+        /// The voting phase was closed
+        ClosedReveal {
             proposal_hash: T::Hash,
             yes: MemberCount,
             no: MemberCount,
+            revealed: MemberCount,
+            payout: BalanceOf<T>,
         },
     }
 
@@ -246,7 +246,7 @@ pub mod pallet {
         VoteEnded,
         /// Vote has already ended when trying to close it
         VoteAlreadyEnded,
-        /// Reveal phase ended
+        /// Reveal phase ended, proposal finished
         RevealEnded,
         /// Reveal phase has not yet started
         RevealNotStarted,
@@ -343,7 +343,10 @@ pub mod pallet {
             );
             let active_votes = <Commits<T>>::iter_prefix_values(signer.clone()).count();
             ensure!(active_votes == 0, Error::<T>::InMotion);
-            let balance = T::Currency::unreserve(&signer, T::Currency::reserved_balance(&signer));
+            // find the exact amount of reserved funds that need to be returned to the free
+            // balance
+            let reserved_balance = <Members<T>>::get(signer.clone()).reserved_balance;
+            let balance = T::Currency::unreserve(&signer, reserved_balance);
             //remove entries
             <Members<T>>::remove(signer.clone());
             Self::deposit_event(Event::<T>::Left {
@@ -395,6 +398,7 @@ pub mod pallet {
                 votes: Vec::new(),
                 revealed: Vec::new(),
                 payout: BalanceOf::<T>::default(),
+                closed: false,
             };
 
             <ProposalData<T>>::insert(proposal_hash, proposal);
@@ -434,6 +438,8 @@ pub mod pallet {
 
             <ProposalData<T>>::insert(proposal, proposal_data);
 
+            Self::deposit_event(Event::<T>::ClosedCommit(proposal));
+
             Ok(())
         }
 
@@ -453,6 +459,9 @@ pub mod pallet {
                 proposal_data.reveal_end.is_some(),
                 Error::<T>::RevealNotStarted
             );
+
+            // if reveal phase end is not set, that means that we did not start it
+            ensure!(!proposal_data.closed, Error::<T>::RevealEnded);
 
             let reveal_end = proposal_data.reveal_end.unwrap();
             let current_block = frame_system::Pallet::<T>::block_number();
@@ -484,6 +493,7 @@ pub mod pallet {
                         .map(|entry| entry.0.clone())
                         .collect();
                     Self::reward_voting_side(winners, &pot_address, amount)?;
+                    Self::deposit_event(Event::<T>::Approved(proposal));
                 }
                 Ordering::Less => {
                     let losers: Vec<T::AccountId> = proposal_data
@@ -510,10 +520,21 @@ pub mod pallet {
                         &pot_address,
                         amount,
                     )?;
+                    Self::deposit_event(Event::<T>::Tie(proposal));
                 }
             }
             proposal_data.payout = amount;
-            <ProposalData<T>>::insert(&proposal, proposal_data);
+
+            // close proposal
+            proposal_data.closed = true;
+            <ProposalData<T>>::insert(&proposal, proposal_data.clone());
+            Self::deposit_event(Event::<T>::ClosedReveal {
+                proposal_hash: proposal,
+                yes: proposal_data.ayes,
+                no: proposal_data.nays,
+                revealed: proposal_data.revealed.len() as u32,
+                payout: proposal_data.payout,
+            });
 
             Ok(())
         }
@@ -523,17 +544,13 @@ pub mod pallet {
         pub fn reveal_vote(origin: OriginFor<T>, proposal: T::Hash, vote: Vote) -> DispatchResult {
             let signer = ensure_signed(origin)?;
 
-            //check if signer is a member already | tested
+            // check if signer is a member already
             ensure!(Self::is_member(&signer), Error::<T>::NotMember);
 
-            //verify the signature
+            // verify if the signature exists
             let commit = <Commits<T>>::take(&signer, &proposal);
             ensure!(commit.is_some(), Error::<T>::NoCommit);
             let commit = commit.unwrap();
-
-            let data = (vote.clone(), commit.salt).encode();
-            let valid_sign = commit.signature.verify(data.as_slice(), &signer);
-            ensure!(valid_sign, Error::<T>::SignatureInvalid);
 
             let proposal_data = <ProposalData<T>>::get(&proposal);
             ensure!(proposal_data.is_some(), Error::<T>::ProposalMissing);
@@ -554,6 +571,10 @@ pub mod pallet {
                     return Ok(());
                 }
             }
+
+            let data = (vote.clone(), commit.salt).encode();
+            let valid_sign = commit.signature.verify(data.as_slice(), &signer);
+            ensure!(valid_sign, Error::<T>::SignatureInvalid);
 
             let voted = Self::already_voted(&signer, &proposal_data);
             ensure!(!voted, Error::<T>::DuplicateVote);
@@ -654,10 +675,17 @@ impl<T: Config> Pallet<T> {
     /// the limit
     pub fn deposit_votes(who: &T::AccountId, tokens: u8) {
         <Members<T>>::mutate(who, |balance| {
-            *balance += tokens;
-            if *balance > 100u8 {
-                *balance = 100u8;
+            balance.voting_tokens += tokens;
+            if balance.voting_tokens > T::MaxVotingTokens::get() {
+                balance.voting_tokens = T::MaxVotingTokens::get();
             }
+        });
+    }
+
+    /// Update the internal record of funds reserved under the account
+    pub fn set_reserved_balance(who: &T::AccountId, funds: BalanceOf<T>) {
+        <Members<T>>::mutate(who, |balance| {
+            balance.reserved_balance = funds;
         });
     }
 
@@ -665,10 +693,10 @@ impl<T: Config> Pallet<T> {
     /// amount. Returns false if account does not have enough voting tokens
     pub fn decrease_votes(who: &T::AccountId, amount: u8) -> bool {
         <Members<T>>::try_mutate(who, |balance| {
-            if *balance < amount {
+            if balance.voting_tokens < amount {
                 return Err(());
             }
-            *balance -= amount;
+            balance.voting_tokens = balance.voting_tokens.saturating_sub(amount);
             Ok(())
         })
         .is_ok()
@@ -680,22 +708,29 @@ impl<T: Config> Pallet<T> {
         voters: Vec<T::AccountId>,
         pot: &T::AccountId,
     ) -> Result<BalanceOf<T>, DispatchError> {
-        let mut balance: BalanceOf<T> = BalanceOf::<T>::default();
+        let mut payout: BalanceOf<T> = BalanceOf::<T>::default();
         for voter in voters {
             let denominator: BalanceOf<T> = 10u8.into();
             let slash = T::Currency::reserved_balance(&voter)
                 .checked_div(&denominator.clone())
                 .get_or_insert(BalanceOf::<T>::default())
                 .to_owned();
-            T::Currency::repatriate_reserved(
+            let lost = T::Currency::repatriate_reserved(
                 &voter,
                 pot,
                 slash,
                 frame_support::traits::BalanceStatus::Reserved,
             )?;
-            balance += slash;
+
+            // calculate how much funds have actually been slashed
+            let slashed = slash.saturating_sub(lost);
+            <Members<T>>::mutate(&voter, |balance| {
+                balance.reserved_balance = balance.reserved_balance.saturating_sub(slashed);
+            });
+            // even though we may not necessary
+            payout = payout.saturating_add(slashed);
         }
-        Ok(balance)
+        Ok(payout)
     }
     /// Rewards evenly every member from the pot with the provided sum
     pub fn reward_voting_side(
@@ -706,12 +741,17 @@ impl<T: Config> Pallet<T> {
         let len = voters.len() as u32;
         let share = total / len.into();
         for voter in voters {
-            T::Currency::repatriate_reserved(
+            let lost = T::Currency::repatriate_reserved(
                 pot,
                 &voter,
                 share,
                 frame_support::traits::BalanceStatus::Reserved,
             )?;
+            let actual_share = share.saturating_sub(lost);
+            //increase the reserved funds under the account
+            <Members<T>>::mutate(&voter, |balance| {
+                balance.reserved_balance = balance.reserved_balance.saturating_add(actual_share);
+            });
         }
         Ok(())
     }
