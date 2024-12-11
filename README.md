@@ -32,8 +32,13 @@ The most popular Community Notes feature exemplifies the challenges faced when i
 
 At the moment, [those](https://github.com/twitter/communitynotes/blob/main/documentation/about/challenges.md?plain=1#L20) platforms mirror exactly the same problem that they are trying to solve, by not having a trully diverse group of people in a general[^2] public to score and fact-check the information.
 
-```mermaid
+This idea explores an innovative approach to decision-making by integrating quadratic voting with anonymity and a slash-reward mechanism for voters.
 
+### The very first approach
+
+The initial approach implements a secure and effective voting system, we start with the proposer generating a keypair, consisting of a public and private key. The public key is then shared with all voters and setting the stage for a secure voting process.
+
+```mermaid
 sequenceDiagram
     participant A as Proposer
     participant V as Voter
@@ -50,6 +55,39 @@ sequenceDiagram
     A->>A: Decrypt votes with private key
     A->>A: Calculate outcome
     A->>S: Publish results
+```
+
+### The second
+
+While the first approach may seem more convenient for the voter since they only need to submit a single transaction to represent a vote, it harm the global integrity of a governance protocol. The voter can simply inside-trade the actual votes and give away votes of other voters before the end of voting phase. The commit and reveal approach ensures trustlessness of a solution, hence, a suitable solution.
+
+<div align="center">
+    <img src="./assets/quadratic.png" alt="Quadratic voting">
+    <em>These models highlight varying approaches to balancing influence and equity in decision-making.</em>
+</div>
+
+---
+
+With quadratic voting, you could eschew single-issue voting because you can trade influence on whats less important to you for influence on whats more important.
+
+So, while it may seem a burden for user and proposer, the economic incentive actually motivates any voter to end the commit phase and reveal phase ASAP to potentially collect reward from voting.
+
+```
+sequenceDiagram
+    participant Author
+    participant Voter
+    participant VotingSystem
+
+    Author->>VotingSystem: Publish Proposal
+    Voter->>VotingSystem: Commit Decision
+    VotingSystem-->>Voter: Wait for Timeout
+    VotingSystem->>Voter: Request Reveal
+    alt Voter Reveals Decision
+        Voter->>VotingSystem: Reveal Decision
+        VotingSystem->>Voter: Reward Voter
+    else Voter Does Not Reveal
+        VotingSystem->>Voter: Slash Voter
+    end
 ```
 
 [^1]: In communities where the majority of members share a similar political leaning, the Community Notes feature can function in the sense as a tool to highlight strong disagreements, such as debates over leader's status or whether certain policies align with fiscal conservative values. This could result in a spectrum of beliefs and potentially lead to "corrections" that bring you closer to the truth. However, this process might often resemble finding a middle ground between empirical evidence and unfounded claims, which doesn't necessarily lead to factual accuracy. Instead, it might simply label dissenting views as socially unacceptable, rather than providing genuine fact-checking ratings.
