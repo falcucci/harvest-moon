@@ -1,6 +1,5 @@
 use frame_support::assert_noop;
 use frame_support::assert_ok;
-use frame_system::Origin;
 use pallet_identity::legacy::IdentityInfo;
 use sp_core::sr25519;
 use sp_runtime::BoundedVec;

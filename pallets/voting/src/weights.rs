@@ -48,31 +48,31 @@ impl<T: frame_system::Config> WeightInfo for SubstrateWeight<T> {
         //  Measured:  `0`
         //  Estimated: `0`
         // Minimum execution time: 8_000_000 picoseconds.
-        Weight::from_parts(9_000_000, 0).saturating_add(T::DbWeight::get().writes(1_u64))
+        Weight::from_parts(10_000_000, 0).saturating_add(T::DbWeight::get().writes(1_u64))
     }
 
     fn leave_committee() -> Weight {
-        Weight::from_parts(9_000_000, 0).saturating_add(T::DbWeight::get().writes(1_u64))
+        Weight::from_parts(10_000_000, 0).saturating_add(T::DbWeight::get().writes(1_u64))
     }
 
     fn create_proposal() -> Weight {
-        Weight::from_parts(9_000_000, 0).saturating_add(T::DbWeight::get().writes(1_u64))
+        Weight::from_parts(10_000_000, 0).saturating_add(T::DbWeight::get().writes(1_u64))
     }
 
     fn close_vote() -> Weight {
-        Weight::from_parts(9_000_000, 0).saturating_add(T::DbWeight::get().writes(1_u64))
+        Weight::from_parts(10_000_000, 0).saturating_add(T::DbWeight::get().writes(1_u64))
     }
 
     fn close_reveal() -> Weight {
-        Weight::from_parts(9_000_000, 0).saturating_add(T::DbWeight::get().writes(1_u64))
+        Weight::from_parts(10_000_000, 0).saturating_add(T::DbWeight::get().writes(1_u64))
     }
 
     fn commit_vote() -> Weight {
-        Weight::from_parts(9_000_000, 0).saturating_add(T::DbWeight::get().writes(1_u64))
+        Weight::from_parts(10_000_000, 0).saturating_add(T::DbWeight::get().writes(1_u64))
     }
 
     fn reveal_vote() -> Weight {
-        Weight::from_parts(9_000_000, 0).saturating_add(T::DbWeight::get().writes(1_u64))
+        Weight::from_parts(10_000_000, 0).saturating_add(T::DbWeight::get().writes(1_u64))
     }
 
     /// Storage: VotingModule Something (r:1 w:1)
@@ -96,51 +96,51 @@ impl WeightInfo for () {
         //  Measured:  `0`
         //  Estimated: `0`
         // Minimum execution time: 8_000_000 picoseconds.
-        Weight::from_parts(9_000_000, 0).saturating_add(RocksDbWeight::get().writes(1_u64))
+        Weight::from_parts(10_000_000, 0).saturating_add(RocksDbWeight::get().writes(1_u64))
     }
 
     fn leave_committee() -> Weight {
-        Weight::from_parts(9_000_000, 0).saturating_add(RocksDbWeight::get().writes(1_u64))
+        Weight::from_parts(10_000_000, 0).saturating_add(RocksDbWeight::get().writes(1_u64))
     }
 
     fn create_proposal() -> Weight {
         // Proof Size summary in bytes:
         //  Measured:  `0`
         //  Estimated: `0`
-        // Minimum execution time: 9_000_000 picoseconds.
-        Weight::from_parts(9_000_000, 0).saturating_add(RocksDbWeight::get().writes(1_u64))
+        // Minimum execution time: 10_000_000 picoseconds.
+        Weight::from_parts(10_000_000, 0).saturating_add(RocksDbWeight::get().writes(1_u64))
     }
 
     fn close_vote() -> Weight {
         // Proof Size summary in bytes:
         //  Measured:  `0`
         //  Estimated: `0`
-        // Minimum execution time: 9_000_000 picoseconds.
-        Weight::from_parts(9_000_000, 0).saturating_add(RocksDbWeight::get().writes(1_u64))
+        // Minimum execution time: 10_000_000 picoseconds.
+        Weight::from_parts(10_000_000, 0).saturating_add(RocksDbWeight::get().writes(1_u64))
     }
 
     fn close_reveal() -> Weight {
         // Proof Size summary in bytes:
         //  Measured:  `0`
         //  Estimated: `0`
-        // Minimum execution time: 9_000_000 picoseconds.
-        Weight::from_parts(9_000_000, 0).saturating_add(RocksDbWeight::get().writes(1_u64))
+        // Minimum execution time: 10_000_000 picoseconds.
+        Weight::from_parts(10_000_000, 0).saturating_add(RocksDbWeight::get().writes(1_u64))
     }
 
     fn commit_vote() -> Weight {
         // Proof Size summary in bytes:
         //  Measured:  `0`
         //  Estimated: `0`
-        // Minimum execution time: 9_000_000 picoseconds.
-        Weight::from_parts(9_000_000, 0).saturating_add(RocksDbWeight::get().writes(1_u64))
+        // Minimum execution time: 10_000_000 picoseconds.
+        Weight::from_parts(10_000_000, 0).saturating_add(RocksDbWeight::get().writes(1_u64))
     }
 
     fn reveal_vote() -> Weight {
         // Proof Size summary in bytes:
         //  Measured:  `0`
         //  Estimated: `0`
-        // Minimum execution time: 9_000_000 picoseconds.
-        Weight::from_parts(9_000_000, 0).saturating_add(RocksDbWeight::get().writes(1_u64))
+        // Minimum execution time: 10_000_000 picoseconds.
+        Weight::from_parts(10_000_000, 0).saturating_add(RocksDbWeight::get().writes(1_u64))
     }
 
     /// Storage: VotingModule Something (r:1 w:1)
