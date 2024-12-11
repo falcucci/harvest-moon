@@ -19,11 +19,6 @@ mod tests;
 // We need to define the types used in this pallet.
 pub mod types;
 
-// Every callable function or "dispatchable" a pallet exposes must have weight
-// values that correctly estimate a dispatchable's execution time. The
-// benchmarking module is used to calculate weights for each dispatchable and generates this pallet's weight.rs file. Learn more about benchmarking here: https://docs.substrate.io/test/benchmark/
-#[cfg(feature = "runtime-benchmarks")]
-mod benchmarking;
 pub mod weights;
 use codec::alloc::borrow::ToOwned;
 use frame_support::traits::ReservableCurrency;

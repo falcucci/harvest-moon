@@ -1,21 +1,3 @@
-// Executed Command:
-// ../../target/release/harvest-moon
-// benchmark
-// pallet
-// --chain
-// dev
-// --pallet
-// pallet_voting
-// --extrinsic
-// *
-// --steps=50
-// --repeat=20
-// --wasm-execution=compiled
-// --output
-// pallets/voting/src/weights.rs
-// --voting
-// ../../.maintain/frame-weight-voting.hbs
-
 #![allow(unused_parens)]
 #![allow(unused_imports)]
 
