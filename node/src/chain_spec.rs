@@ -122,6 +122,6 @@ fn testnet_genesis(
             // Assign network admin rights.
             "key": Some(root_key),
         },
-        "voting": Vec::<()>::default(),
+        "votingModule": {},
     })
 }
