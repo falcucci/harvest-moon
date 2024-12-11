@@ -1,13 +1,13 @@
 [package]
 name = "harvest-moon-node"
-description = "A harvest-moon node built with Substrate."
+description = "The harvest-moon node built with Substrate."
 version = "0.1.0"
 license = "Apache-2.0"
 authors.workspace = true
 homepage.workspace = true
 repository.workspace = true
 edition.workspace = true
-publish = false
+publish = true
 
 build = "build.rs"
 
