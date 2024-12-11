@@ -50,9 +50,7 @@ pub mod pallet {
     use frame_support::pallet_prelude::*;
     use frame_support::sp_runtime::traits::Hash;
     use frame_support::traits::Currency;
-    use frame_support::traits::PalletsInfoAccess;
     use frame_support::traits::ReservableCurrency;
-    use frame_support::Blake2_128Concat;
     use frame_support::PalletId;
     use frame_system::pallet_prelude::*;
     use scale_info::prelude::boxed::Box;
