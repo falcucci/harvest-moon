@@ -6,6 +6,10 @@ A community-based platform agnostic fact-checking system
 
 </div>
 
+A pallet implementing quadratic voting based on substrate collective pallet. Some additional features has been done such as the slashing mechanism which provides an incentive for voters to collaborate in the decision making process and the commit-reveal voting system to prevent inside-trading.
+
+<!-- Heads up to [pallet/voting](https://github.com/falcucci/harvest-moon/blob/main/pallets/voting) to see [tests](https://github.com/falcucci/harvest-moon/blob/main/pallets/voting/src/tests.rs) and implementation. -->
+
 **NOTE**: _This is an experimental project, no research has been conducted to actually prove economic costs of this governance system._
 
 A community-based platform agnostic fact-checking collactor to verify the veracity[^1] of posts, comments or any user-based interaction calculating its outcomes rating which must be public.
@@ -59,7 +63,7 @@ sequenceDiagram
 
 ### The second
 
-While the first approach may seem more convenient for the voter since they only need to submit a single transaction to represent a vote, it harm the global integrity of a governance protocol. The voter can simply inside-trade the actual votes and give away votes of other voters before the end of voting phase. The commit and reveal approach ensures trustlessness of a solution, hence, a suitable solution.
+As the first approach may seem more convenient for the voter since they only need to submit a single transaction to represent a vote, it harm the global integrity of a governance protocol. The voter can simply inside-trade the actual votes and give away votes of other voters before the end of voting phase. The commit and reveal approach ensures trustlessness of a solution, hence, a suitable solution.
 
 <div align="center">
     <img src="./assets/quadratic.png" alt="Quadratic voting">
@@ -68,7 +72,7 @@ While the first approach may seem more convenient for the voter since they only 
 
 ---
 
-With quadratic voting, you could eschew single-issue voting because you can trade influence on whats less important to you for influence on whats more important.
+In quadratic voting, you could eschew single-issue voting because you can trade influence on whats less important to you for influence on whats more important.
 
 So, while it may seem a burden for user and proposer, the economic incentive actually motivates any voter to end the commit phase and reveal phase ASAP to potentially collect reward from voting.
 
