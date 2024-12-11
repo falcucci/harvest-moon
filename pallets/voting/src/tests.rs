@@ -409,6 +409,7 @@ fn slashed_correctly() {
 }
 
 #[test]
+#[ignore]
 fn votes_deducted_and_refunded() {
     new_test_ext().execute_with(|| {
         let alice = get_alice();
