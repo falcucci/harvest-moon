@@ -76,7 +76,7 @@ In quadratic voting, you could eschew single-issue voting because you can trade 
 
 So, while it may seem a burden for user and proposer, the economic incentive actually motivates any voter to end the commit phase and reveal phase ASAP to potentially collect reward from voting.
 
-```
+```mermaid
 sequenceDiagram
     participant Author
     participant Voter
